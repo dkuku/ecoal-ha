@@ -1,7 +1,7 @@
 # eCoal Furnace Protocol Documentation
 
 ## Hardware
-- **Furnace brand**: Ogniwo (Ogniwo Biecz)
+- **Furnace brand**: Various (tested with Ogniwo Biecz)
 - **Controller**: eCoal.pl by eSterownik.pl
 - **Tested firmware**: v0.2.9.16a
 - **Web panel**: port 80 (HTTP only)

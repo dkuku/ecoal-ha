@@ -1,12 +1,14 @@
-# Ogniwo Furnace - integracja Home Assistant
+# eCoal - integracja Home Assistant
 
-Integracja [Home Assistant](https://www.home-assistant.io/) dla pieców firmy **Ogniwo Biecz** wyposażonych w sterownik **eCoal.pl** (producent: eSterownik.pl).
+Eksperymentalna integracja [Home Assistant](https://www.home-assistant.io/) dla sterowników **eCoal.pl** (producent: eSterownik.pl) stosowanych w piecach na paliwo stałe.
 
 Komunikacja odbywa się bezpośrednio przez protokół HTTP sterownika eCoal - bez potrzeby korzystania z chmury eSterownik.pl.
 
+⚠️ **Używasz na własne ryzyko** - autor nie ponosi odpowiedzialności za ewentualne uszkodzenia pieca lub instalacji grzewczej. PR-y mile widziane!
+
 ## Wspierane urządzenia
 
-- Piece Ogniwo Biecz ze sterownikiem eCoal.pl
+- Piece ze sterownikiem eCoal.pl (firmware v0.2)
 - Testowane na firmware v0.2.9.16a
 - Obsługuje obieg CO, CWU oraz ogrzewanie podłogowe (obieg mieszacza)
 
@@ -71,20 +73,20 @@ Heating state, Setpoint mode, CWU mode, Alarms code, Mixer valve, Day/Night, Con
 1. Otwórz HACS w Home Assistant
 2. Kliknij menu (trzy kropki) w prawym górnym rogu
 3. Wybierz **Custom repositories**
-4. Wpisz URL: `https://github.com/dkuku/ogniwo-furnace-ha`
+4. Wpisz URL: `https://github.com/dkuku/ecoal-ha`
 5. Kategoria: **Integration**
-6. Kliknij **Add**, a następnie zainstaluj **Ogniwo Furnace**
+6. Kliknij **Add**, a następnie zainstaluj **eCoal**
 7. Uruchom ponownie Home Assistant
 
 ### Instalacja ręczna
 
-1. Skopiuj folder `custom_components/ogniwo_furnace` do katalogu `custom_components/` w konfiguracji HA
+1. Skopiuj folder `custom_components/ecoal` do katalogu `custom_components/` w konfiguracji HA
 2. Uruchom ponownie Home Assistant
 
 ## Konfiguracja
 
 1. Przejdź do **Ustawienia** > **Urządzenia i usługi** > **Dodaj integrację**
-2. Wyszukaj **Ogniwo Furnace**
+2. Wyszukaj **eCoal**
 3. Podaj:
    - **Adres IP** sterownika eCoal
    - **Użytkownik** (konto na panelu webowym sterownika)
