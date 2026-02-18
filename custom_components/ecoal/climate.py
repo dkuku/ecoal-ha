@@ -1,4 +1,4 @@
-"""Climate entities for Ogniwo Furnace - CO heating, CWU hot water, floor heating."""
+"""Climate entities for eCoal - CO heating, CWU hot water, floor heating."""
 from __future__ import annotations
 
 from typing import Any
@@ -18,7 +18,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .client import CWU_MODE_OFF, CWU_MODE_WINTER
 from .const import DOMAIN
-from .coordinator import OgniwoCoordinator
+from .coordinator import EcoalCoordinator
 
 
 async def async_setup_entry(
@@ -26,17 +26,17 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: OgniwoCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: EcoalCoordinator = hass.data[DOMAIN][entry.entry_id]
     entities: list[ClimateEntity] = [
-        OgniwoHeatingClimate(coordinator, entry),
-        OgniwoCWUClimate(coordinator, entry),
+        EcoalHeatingClimate(coordinator, entry),
+        EcoalCWUClimate(coordinator, entry),
     ]
     if "floor_temp" in coordinator.connected_sensors:
-        entities.append(OgniwoFloorClimate(coordinator, entry))
+        entities.append(EcoalFloorClimate(coordinator, entry))
     async_add_entities(entities)
 
 
-class OgniwoHeatingClimate(CoordinatorEntity[OgniwoCoordinator], ClimateEntity):
+class EcoalHeatingClimate(CoordinatorEntity[EcoalCoordinator], ClimateEntity):
     """Climate entity for the central heating (CO) circuit."""
 
     _attr_has_entity_name = True
@@ -49,14 +49,14 @@ class OgniwoHeatingClimate(CoordinatorEntity[OgniwoCoordinator], ClimateEntity):
     _attr_max_temp = 80
     _attr_target_temperature_step = 1
 
-    def __init__(self, coordinator: OgniwoCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: EcoalCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_climate_co"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="Ogniwo Furnace",
-            manufacturer="Ogniwo Biecz",
-            model="eCoal Furnace Controller",
+            name="eCoal",
+            manufacturer="eCoal",
+            model="Furnace Controller",
             sw_version=coordinator.firmware_version,
         )
 
@@ -102,7 +102,7 @@ class OgniwoHeatingClimate(CoordinatorEntity[OgniwoCoordinator], ClimateEntity):
         await self.coordinator.async_request_refresh()
 
 
-class OgniwoCWUClimate(CoordinatorEntity[OgniwoCoordinator], ClimateEntity):
+class EcoalCWUClimate(CoordinatorEntity[EcoalCoordinator], ClimateEntity):
     """Climate entity for domestic hot water (CWU) circuit."""
 
     _attr_has_entity_name = True
@@ -115,14 +115,14 @@ class OgniwoCWUClimate(CoordinatorEntity[OgniwoCoordinator], ClimateEntity):
     _attr_max_temp = 65
     _attr_target_temperature_step = 1
 
-    def __init__(self, coordinator: OgniwoCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: EcoalCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_climate_cwu"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="Ogniwo Furnace",
-            manufacturer="Ogniwo Biecz",
-            model="eCoal Furnace Controller",
+            name="eCoal",
+            manufacturer="eCoal",
+            model="Furnace Controller",
             sw_version=coordinator.firmware_version,
         )
 
@@ -172,7 +172,7 @@ class OgniwoCWUClimate(CoordinatorEntity[OgniwoCoordinator], ClimateEntity):
         await self.coordinator.async_request_refresh()
 
 
-class OgniwoFloorClimate(CoordinatorEntity[OgniwoCoordinator], ClimateEntity):
+class EcoalFloorClimate(CoordinatorEntity[EcoalCoordinator], ClimateEntity):
     """Climate entity for the floor heating circuit (mixer/underfloor)."""
 
     _attr_has_entity_name = True
@@ -185,14 +185,14 @@ class OgniwoFloorClimate(CoordinatorEntity[OgniwoCoordinator], ClimateEntity):
     _attr_max_temp = 55
     _attr_target_temperature_step = 1
 
-    def __init__(self, coordinator: OgniwoCoordinator, entry: ConfigEntry) -> None:
+    def __init__(self, coordinator: EcoalCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = f"{entry.entry_id}_climate_floor"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="Ogniwo Furnace",
-            manufacturer="Ogniwo Biecz",
-            model="eCoal Furnace Controller",
+            name="eCoal",
+            manufacturer="eCoal",
+            model="Furnace Controller",
             sw_version=coordinator.firmware_version,
         )
 

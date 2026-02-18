@@ -1,4 +1,4 @@
-"""Data update coordinator for Ogniwo furnace."""
+"""Data update coordinator for eCoal controller."""
 from __future__ import annotations
 
 import logging
@@ -8,17 +8,17 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .client import SENSOR_NAMES, OgniwoClient
+from .client import SENSOR_NAMES, EcoalClient
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class OgniwoCoordinator(DataUpdateCoordinator[dict[str, Any]]):
+class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator that polls furnace status every 30 seconds."""
 
-    def __init__(self, hass: HomeAssistant, client: OgniwoClient) -> None:
+    def __init__(self, hass: HomeAssistant, client: EcoalClient) -> None:
         super().__init__(
-            hass, _LOGGER, name="Ogniwo Furnace", update_interval=timedelta(seconds=30)
+            hass, _LOGGER, name="eCoal", update_interval=timedelta(seconds=30)
         )
         self.client = client
         self.firmware_version: str | None = None

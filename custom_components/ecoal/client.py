@@ -1,4 +1,4 @@
-"""eCoal protocol client for Ogniwo furnace controller."""
+"""eCoal protocol client for eCoal furnace controller."""
 from __future__ import annotations
 
 import asyncio
@@ -148,8 +148,8 @@ def _encode_program(days: list[str]) -> list[int]:
     return result
 
 
-class OgniwoClient:
-    """Client for communicating with Ogniwo furnace via eCoal HTTP protocol."""
+class EcoalClient:
+    """Client for communicating with furnace via eCoal HTTP protocol."""
 
     def __init__(
         self, host: str, username: str, password: str, session: aiohttp.ClientSession

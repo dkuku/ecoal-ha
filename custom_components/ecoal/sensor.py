@@ -1,4 +1,4 @@
-"""Sensors for Ogniwo Furnace."""
+"""Sensors for eCoal."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -17,18 +17,18 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import OgniwoCoordinator
+from .coordinator import EcoalCoordinator
 
 
 @dataclass(frozen=True, kw_only=True)
-class OgniwoSensorDescription(SensorEntityDescription):
+class EcoalSensorDescription(SensorEntityDescription):
     value_key: str
     requires_sensor: str | None = None
 
 
-SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
+SENSOR_DESCRIPTIONS: tuple[EcoalSensorDescription, ...] = (
     # --- Temperatures (conditional on sensor state) ---
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="floor_temp",
         value_key="floor_temp",
         translation_key="floor_temp",
@@ -38,7 +38,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:heating-coil",
         requires_sensor="floor_temp",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="indoor_temp",
         value_key="indoor_temp",
         translation_key="indoor_temp",
@@ -48,7 +48,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:home-thermometer",
         requires_sensor="indoor_temp",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="outdoor_temp",
         value_key="outdoor_temp",
         translation_key="outdoor_temp",
@@ -58,7 +58,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:thermometer",
         requires_sensor="outdoor_temp",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="dhw_temp",
         value_key="dhw_temp",
         translation_key="dhw_temp",
@@ -68,7 +68,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:water-thermometer",
         requires_sensor="dhw_temp",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="return_temp",
         value_key="return_temp",
         translation_key="return_temp",
@@ -78,7 +78,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:thermometer-chevron-down",
         requires_sensor="return_temp",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="feeder_temp",
         value_key="feeder_temp",
         translation_key="feeder_temp",
@@ -88,7 +88,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:thermometer-alert",
         requires_sensor="feeder_temp",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="boiler_temp",
         value_key="boiler_temp",
         translation_key="boiler_temp",
@@ -98,7 +98,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:fire",
         requires_sensor="boiler_temp",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="exhaust_temp",
         value_key="exhaust_temp",
         translation_key="exhaust_temp",
@@ -109,7 +109,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         requires_sensor="exhaust_temp",
     ),
     # --- Power and runtime (always present) ---
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="air_pump_power",
         value_key="air_pump_power",
         translation_key="air_pump_power",
@@ -117,7 +117,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:fan",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="feeder_runtime",
         value_key="feeder_runtime",
         translation_key="feeder_runtime",
@@ -127,7 +127,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:timer-outline",
     ),
     # --- Setpoints (always present) ---
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="target_boiler_temp",
         value_key="target_boiler_temp",
         translation_key="target_boiler_temp",
@@ -135,7 +135,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         icon="mdi:thermometer-check",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="target_dhw_temp",
         value_key="target_dhw_temp",
         translation_key="target_dhw_temp",
@@ -143,7 +143,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         icon="mdi:thermometer-water",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="co_lowered_amount",
         value_key="co_lowered_amount",
         translation_key="co_lowered_amount",
@@ -151,7 +151,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         icon="mdi:thermometer-minus",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="cwu_lowered_amount",
         value_key="cwu_lowered_amount",
         translation_key="cwu_lowered_amount",
@@ -160,7 +160,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:thermometer-minus",
     ),
     # --- Room temperature setpoints (conditional on indoor sensor) ---
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="room_day_temp",
         value_key="room_day_temp",
         translation_key="room_day_temp",
@@ -169,7 +169,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:white-balance-sunny",
         requires_sensor="indoor_temp",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="room_night_temp",
         value_key="room_night_temp",
         translation_key="room_night_temp",
@@ -179,7 +179,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         requires_sensor="indoor_temp",
     ),
     # --- Floor heating setpoints (conditional on floor sensor) ---
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="floor_day_temp",
         value_key="floor_day_temp",
         translation_key="floor_day_temp",
@@ -188,7 +188,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         icon="mdi:heating-coil",
         requires_sensor="floor_temp",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="floor_night_temp",
         value_key="floor_night_temp",
         translation_key="floor_night_temp",
@@ -198,7 +198,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         requires_sensor="floor_temp",
     ),
     # --- Fuel data (always present) ---
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="fuel_load_pct",
         value_key="fuel_load_pct",
         translation_key="fuel_load_pct",
@@ -206,7 +206,7 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:basket-fill",
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="feeding_pct",
         value_key="feeding_pct",
         translation_key="feeding_pct",
@@ -217,64 +217,64 @@ SENSOR_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
 )
 
 # Diagnostic sensors for modes and flags (always present)
-DIAG_DESCRIPTIONS: tuple[OgniwoSensorDescription, ...] = (
-    OgniwoSensorDescription(
+DIAG_DESCRIPTIONS: tuple[EcoalSensorDescription, ...] = (
+    EcoalSensorDescription(
         key="heating",
         value_key="heating",
         translation_key="heating_state",
         icon="mdi:fire",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="setpoint_mode",
         value_key="setpoint_mode",
         translation_key="setpoint_mode",
         icon="mdi:tune",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="cwu_mode",
         value_key="cwu_mode",
         translation_key="cwu_mode",
         icon="mdi:water-boiler",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="alarms_raw",
         value_key="alarms_raw",
         translation_key="alarms",
         icon="mdi:alert-circle",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="mixer_circuit",
         value_key="mixer_circuit",
         translation_key="mixer_circuit",
         icon="mdi:valve",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="day_night",
         value_key="day_night",
         translation_key="day_night",
         icon="mdi:theme-light-dark",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="controller_datetime",
         value_key="controller_datetime",
         translation_key="controller_datetime",
         icon="mdi:clock-outline",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="fuel_load_date",
         value_key="fuel_load_date",
         translation_key="fuel_load_date",
         icon="mdi:calendar",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    OgniwoSensorDescription(
+    EcoalSensorDescription(
         key="inputs_raw",
         value_key="inputs_raw",
         translation_key="inputs",
@@ -289,26 +289,26 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: OgniwoCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: EcoalCoordinator = hass.data[DOMAIN][entry.entry_id]
     connected = coordinator.connected_sensors
     entities: list[SensorEntity] = []
     for description in SENSOR_DESCRIPTIONS:
         if description.requires_sensor and description.requires_sensor not in connected:
             continue
-        entities.append(OgniwoSensor(coordinator, description, entry))
+        entities.append(EcoalSensor(coordinator, description, entry))
     for description in DIAG_DESCRIPTIONS:
-        entities.append(OgniwoSensor(coordinator, description, entry))
+        entities.append(EcoalSensor(coordinator, description, entry))
     async_add_entities(entities)
 
 
-class OgniwoSensor(CoordinatorEntity[OgniwoCoordinator], SensorEntity):
-    entity_description: OgniwoSensorDescription
+class EcoalSensor(CoordinatorEntity[EcoalCoordinator], SensorEntity):
+    entity_description: EcoalSensorDescription
     _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator: OgniwoCoordinator,
-        description: OgniwoSensorDescription,
+        coordinator: EcoalCoordinator,
+        description: EcoalSensorDescription,
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator)
@@ -316,9 +316,9 @@ class OgniwoSensor(CoordinatorEntity[OgniwoCoordinator], SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="Ogniwo Furnace",
-            manufacturer="Ogniwo Biecz",
-            model="eCoal Furnace Controller",
+            name="eCoal",
+            manufacturer="eCoal",
+            model="Furnace Controller",
             sw_version=coordinator.firmware_version,
         )
 

@@ -1,4 +1,4 @@
-"""Config flow for Ogniwo Furnace."""
+"""Config flow for eCoal."""
 from __future__ import annotations
 
 from typing import Any
@@ -10,11 +10,11 @@ from homeassistant.const import CONF_HOST, CONF_USERNAME, CONF_PASSWORD
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN
-from .client import OgniwoClient
+from .client import EcoalClient
 
 
-class OgniwoConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle config flow for Ogniwo Furnace."""
+class EcoalConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle config flow for eCoal."""
 
     VERSION = 1
 
@@ -24,7 +24,7 @@ class OgniwoConfigFlow(ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input is not None:
             session = async_get_clientsession(self.hass)
-            client = OgniwoClient(
+            client = EcoalClient(
                 user_input[CONF_HOST],
                 user_input[CONF_USERNAME],
                 user_input[CONF_PASSWORD],
@@ -34,7 +34,7 @@ class OgniwoConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(user_input[CONF_HOST])
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title=f"Ogniwo Furnace ({user_input[CONF_HOST]})",
+                    title=f"eCoal ({user_input[CONF_HOST]})",
                     data=user_input,
                 )
             errors["base"] = "cannot_connect"

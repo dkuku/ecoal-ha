@@ -1,4 +1,4 @@
-"""Switches for Ogniwo Furnace."""
+"""Switches for eCoal."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,33 +12,33 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import OgniwoCoordinator
+from .coordinator import EcoalCoordinator
 
 
 @dataclass(frozen=True, kw_only=True)
-class OgniwoSwitchDescription(SwitchEntityDescription):
+class EcoalSwitchDescription(SwitchEntityDescription):
     value_key: str
     param: int | None = None
     is_auto_mode: bool = False
     requires_sensor: str | None = None
 
 
-SWITCH_DESCRIPTIONS: tuple[OgniwoSwitchDescription, ...] = (
-    OgniwoSwitchDescription(
+SWITCH_DESCRIPTIONS: tuple[EcoalSwitchDescription, ...] = (
+    EcoalSwitchDescription(
         key="ch_pump",
         value_key="ch_pump",
         translation_key="ch_pump",
         icon="mdi:pump",
         param=0x0D,
     ),
-    OgniwoSwitchDescription(
+    EcoalSwitchDescription(
         key="dhw_pump",
         value_key="dhw_pump",
         translation_key="dhw_pump",
         icon="mdi:pump",
         param=0x0E,
     ),
-    OgniwoSwitchDescription(
+    EcoalSwitchDescription(
         key="mixer_pump",
         value_key="mixer_pump",
         translation_key="mixer_pump",
@@ -46,21 +46,21 @@ SWITCH_DESCRIPTIONS: tuple[OgniwoSwitchDescription, ...] = (
         param=0x0F,
         requires_sensor="floor_temp",
     ),
-    OgniwoSwitchDescription(
+    EcoalSwitchDescription(
         key="air_pump",
         value_key="air_pump",
         translation_key="air_pump",
         icon="mdi:fan",
         param=0x0B,
     ),
-    OgniwoSwitchDescription(
+    EcoalSwitchDescription(
         key="coal_feeder",
         value_key="coal_feeder",
         translation_key="coal_feeder",
         icon="mdi:screw-flat-top",
         param=0x0C,
     ),
-    OgniwoSwitchDescription(
+    EcoalSwitchDescription(
         key="auto_mode",
         value_key="auto_mode",
         translation_key="auto_mode",
@@ -75,23 +75,23 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    coordinator: OgniwoCoordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator: EcoalCoordinator = hass.data[DOMAIN][entry.entry_id]
     connected = coordinator.connected_sensors
     async_add_entities(
-        OgniwoSwitch(coordinator, description, entry)
+        EcoalSwitch(coordinator, description, entry)
         for description in SWITCH_DESCRIPTIONS
         if not description.requires_sensor or description.requires_sensor in connected
     )
 
 
-class OgniwoSwitch(CoordinatorEntity[OgniwoCoordinator], SwitchEntity):
-    entity_description: OgniwoSwitchDescription
+class EcoalSwitch(CoordinatorEntity[EcoalCoordinator], SwitchEntity):
+    entity_description: EcoalSwitchDescription
     _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator: OgniwoCoordinator,
-        description: OgniwoSwitchDescription,
+        coordinator: EcoalCoordinator,
+        description: EcoalSwitchDescription,
         entry: ConfigEntry,
     ) -> None:
         super().__init__(coordinator)
@@ -99,9 +99,9 @@ class OgniwoSwitch(CoordinatorEntity[OgniwoCoordinator], SwitchEntity):
         self._attr_unique_id = f"{entry.entry_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
-            name="Ogniwo Furnace",
-            manufacturer="Ogniwo Biecz",
-            model="eCoal Furnace Controller",
+            name="eCoal",
+            manufacturer="eCoal",
+            model="Furnace Controller",
             sw_version=coordinator.firmware_version,
         )
 

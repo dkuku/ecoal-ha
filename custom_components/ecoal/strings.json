@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Connect to Ogniwo Furnace",
+        "title": "Connect to eCoal controller",
         "data": {
           "host": "Host (IP address)",
           "username": "Username",
@@ -11,7 +11,7 @@
       }
     },
     "error": {
-      "cannot_connect": "Cannot connect to furnace. Check IP address and credentials."
+      "cannot_connect": "Cannot connect to controller. Check IP address and credentials."
     }
   },
   "entity": {

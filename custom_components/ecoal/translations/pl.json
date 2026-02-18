@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Połącz z piecem Ogniwo",
+        "title": "Połącz ze sterownikiem eCoal",
         "data": {
           "host": "Adres IP",
           "username": "Użytkownik",
@@ -11,7 +11,7 @@
       }
     },
     "error": {
-      "cannot_connect": "Nie można połączyć z piecem. Sprawdź adres IP i dane logowania."
+      "cannot_connect": "Nie można połączyć ze sterownikiem. Sprawdź adres IP i dane logowania."
     }
   },
   "entity": {

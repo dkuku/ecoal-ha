@@ -1,9 +1,9 @@
 {
-  "domain": "ogniwo_furnace",
-  "name": "Ogniwo Furnace",
+  "domain": "ecoal",
+  "name": "eCoal",
   "codeowners": ["@dkuku"],
   "config_flow": true,
-  "documentation": "https://github.com/dkuku/ogniwo-furnace-ha",
+  "documentation": "https://github.com/dkuku/ecoal-ha",
   "iot_class": "local_polling",
   "requirements": [],
   "version": "1.0.0"
