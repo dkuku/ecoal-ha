@@ -1,0 +1,10 @@
+{
+  "domain": "ogniwo_furnace",
+  "name": "Ogniwo Furnace",
+  "codeowners": ["@dkuku"],
+  "config_flow": true,
+  "documentation": "https://github.com/dkuku/ogniwo-furnace-ha",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "1.0.0"
+}

@@ -1,0 +1,72 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Ogniwo Furnace",
+        "data": {
+          "host": "Host (IP address)",
+          "username": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect to furnace. Check IP address and credentials."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "alarm_active": { "name": "Alarm" },
+      "co_lowered_active": { "name": "CO lowered" },
+      "cwu_lowered_active": { "name": "CWU lowered" },
+      "is_summer": { "name": "Summer mode" },
+      "z1_pump": { "name": "Z1 pump" },
+      "valve_3d": { "name": "3-way valve" },
+      "cwu_mixer": { "name": "CWU mixer valve" }
+    },
+    "climate": {
+      "heating": { "name": "Heating" },
+      "hot_water": { "name": "Hot Water" },
+      "floor_heating": { "name": "Floor Heating" }
+    },
+    "sensor": {
+      "floor_temp": { "name": "Floor temperature" },
+      "indoor_temp": { "name": "Indoor temperature" },
+      "outdoor_temp": { "name": "Outdoor temperature" },
+      "dhw_temp": { "name": "DHW temperature" },
+      "return_temp": { "name": "Return temperature" },
+      "feeder_temp": { "name": "Feeder temperature" },
+      "boiler_temp": { "name": "Boiler temperature" },
+      "exhaust_temp": { "name": "Exhaust temperature" },
+      "air_pump_power": { "name": "Blower power" },
+      "feeder_runtime": { "name": "Feeder runtime" },
+      "target_boiler_temp": { "name": "Target boiler temperature" },
+      "target_dhw_temp": { "name": "Target DHW temperature" },
+      "co_lowered_amount": { "name": "CO lowered amount" },
+      "cwu_lowered_amount": { "name": "CWU lowered amount" },
+      "room_day_temp": { "name": "Room day temperature" },
+      "room_night_temp": { "name": "Room night temperature" },
+      "floor_day_temp": { "name": "Floor day temperature" },
+      "floor_night_temp": { "name": "Floor night temperature" },
+      "fuel_load_pct": { "name": "Fuel load" },
+      "feeding_pct": { "name": "Feeding" },
+      "heating_state": { "name": "Heating state" },
+      "setpoint_mode": { "name": "Setpoint mode" },
+      "cwu_mode": { "name": "CWU mode" },
+      "alarms": { "name": "Alarms code" },
+      "mixer_circuit": { "name": "Mixer valve" },
+      "day_night": { "name": "Day/Night" },
+      "controller_datetime": { "name": "Controller clock" },
+      "fuel_load_date": { "name": "Fuel load date" },
+      "inputs": { "name": "Inputs" }
+    },
+    "switch": {
+      "ch_pump": { "name": "CH pump" },
+      "dhw_pump": { "name": "DHW pump" },
+      "mixer_pump": { "name": "Mixer pump" },
+      "air_pump": { "name": "Blower" },
+      "coal_feeder": { "name": "Coal feeder" },
+      "auto_mode": { "name": "Auto mode" }
+    }
+  }
+}

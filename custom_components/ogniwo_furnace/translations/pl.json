@@ -1,0 +1,72 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Połącz z piecem Ogniwo",
+        "data": {
+          "host": "Adres IP",
+          "username": "Użytkownik",
+          "password": "Hasło"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie można połączyć z piecem. Sprawdź adres IP i dane logowania."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "alarm_active": { "name": "Alarm" },
+      "co_lowered_active": { "name": "Obniżenie CO" },
+      "cwu_lowered_active": { "name": "Obniżenie CWU" },
+      "is_summer": { "name": "Tryb letni" },
+      "z1_pump": { "name": "Pompa Z1" },
+      "valve_3d": { "name": "Zawór trójdrogowy" },
+      "cwu_mixer": { "name": "Zawór mieszający CWU" }
+    },
+    "climate": {
+      "heating": { "name": "Ogrzewanie" },
+      "hot_water": { "name": "Ciepła woda" },
+      "floor_heating": { "name": "Ogrzewanie podłogowe" }
+    },
+    "sensor": {
+      "floor_temp": { "name": "Temperatura podłogowa" },
+      "indoor_temp": { "name": "Temperatura wewnętrzna" },
+      "outdoor_temp": { "name": "Temperatura zewnętrzna" },
+      "dhw_temp": { "name": "Temperatura CWU" },
+      "return_temp": { "name": "Temperatura powrotu" },
+      "feeder_temp": { "name": "Temperatura podajnika" },
+      "boiler_temp": { "name": "Temperatura kotła" },
+      "exhaust_temp": { "name": "Temperatura spalin" },
+      "air_pump_power": { "name": "Moc dmuchawy" },
+      "feeder_runtime": { "name": "Czas pracy podajnika" },
+      "target_boiler_temp": { "name": "Temp. zadana CO" },
+      "target_dhw_temp": { "name": "Temp. zadana CWU" },
+      "co_lowered_amount": { "name": "Obniżenie CO" },
+      "cwu_lowered_amount": { "name": "Obniżenie CWU" },
+      "room_day_temp": { "name": "Temp. pokojowa dzienna" },
+      "room_night_temp": { "name": "Temp. pokojowa nocna" },
+      "floor_day_temp": { "name": "Temp. podłogowa dzienna" },
+      "floor_night_temp": { "name": "Temp. podłogowa nocna" },
+      "fuel_load_pct": { "name": "Zapas paliwa" },
+      "feeding_pct": { "name": "Podawanie" },
+      "heating_state": { "name": "Stan grzania" },
+      "setpoint_mode": { "name": "Tryb zadawania" },
+      "cwu_mode": { "name": "Tryb CWU" },
+      "alarms": { "name": "Kod alarmów" },
+      "mixer_circuit": { "name": "Zawór mieszający" },
+      "day_night": { "name": "Dzień/Noc" },
+      "controller_datetime": { "name": "Zegar sterownika" },
+      "fuel_load_date": { "name": "Data zasypania" },
+      "inputs": { "name": "Wejścia" }
+    },
+    "switch": {
+      "ch_pump": { "name": "Pompa CO" },
+      "dhw_pump": { "name": "Pompa CWU" },
+      "mixer_pump": { "name": "Pompa mieszająca" },
+      "air_pump": { "name": "Dmuchawa" },
+      "coal_feeder": { "name": "Podajnik" },
+      "auto_mode": { "name": "Tryb automatyczny" }
+    }
+  }
+}
