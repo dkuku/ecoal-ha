@@ -43,12 +43,34 @@ Komunikacja odbywa się bezpośrednio przez protokół HTTP sterownika eCoal - b
 | Blower power | Moc dmuchawy (%) |
 | Feeder runtime | Czas pracy podajnika (minuty) |
 | Fuel load | Zapas paliwa (%) |
+| Fuel remaining | Pozostało węgla (kg) wyliczane z pojemności zasobnika |
 | Feeding | Podawanie (%) |
+
+### Przyciski (button)
+| Encja | Opis |
+|-------|------|
+| Refill hopper (100%) | Zeruje czas pracy podajnika, ustawia zapas na 100% i zapisuje dzisiejszą datę zasypu |
+| Acknowledge alarms | Kasuje aktywne alarmy sterownika |
+| Synchronize clock | Synchronizuje zegar sterownika z czasem systemowym HA |
+
+### Ustawienia numeryczne (number)
+| Encja | Opis |
+|-------|------|
+| Hopper capacity | Pojemność zasobnika w kg (domyślnie 150 kg, zapamiętywana po restarcie) |
+| Feeder max runtime | Czas pracy podajnika do opróżnienia zasobnika w minutach (PARAM 79 w sterowniku) |
+| Blower power correction | Korekta mocy dmuchawy w % (-6% .. +6%, PARAM 94 w sterowniku) |
+
+### Wybór trybu (select)
+| Encja | Opis |
+|-------|------|
+| Feeder mode | Algorytm spalania podajnika (PARAM 119): Retortowy ręczny / Spalanie grupowe / Algorytm eCoal / Zasypowy |
 
 ### Przełączniki (switch)
 | Encja | Opis |
 |-------|------|
 | Auto mode | Tryb automatyczny |
+| DHW priority | Priorytet grzania CWU — wyłącza obieg CO na czas dogrzewania bojlera (PARAM 112) |
+| Exhaust temp regulator | Regulator temperatury spalin — ogranicza nadmuch przy zbyt gorących spalinach (PARAM 98) |
 | Blower | Dmuchawa (ręczne sterowanie) |
 | Coal feeder | Podajnik (ręczne sterowanie) |
 | CH pump | Pompa CO |
@@ -64,7 +86,7 @@ Komunikacja odbywa się bezpośrednio przez protokół HTTP sterownika eCoal - b
 | Summer mode | Tryb letni |
 
 ### Sensory diagnostyczne
-Heating state, Setpoint mode, CWU mode, Alarms code, Mixer valve, Day/Night, Controller clock, Fuel load date, Inputs.
+Heating state, Setpoint mode, CWU mode, Alarms code, Mixer valve, Day/Night, Controller clock, Fuel load date, Estimated empty date, Inputs.
 
 ## Instalacja
 

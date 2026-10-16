@@ -1,11 +1,13 @@
 """Switches for eCoal."""
 from __future__ import annotations
 
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -21,6 +23,7 @@ class EcoalSwitchDescription(SwitchEntityDescription):
     param: int | None = None
     is_auto_mode: bool = False
     requires_sensor: str | None = None
+    set_fn: Callable[[EcoalCoordinator, bool], Coroutine[Any, Any, bool]] | None = None
 
 
 SWITCH_DESCRIPTIONS: tuple[EcoalSwitchDescription, ...] = (
@@ -66,6 +69,22 @@ SWITCH_DESCRIPTIONS: tuple[EcoalSwitchDescription, ...] = (
         translation_key="auto_mode",
         icon="mdi:auto-mode",
         is_auto_mode=True,
+    ),
+    EcoalSwitchDescription(
+        key="dhw_priority",
+        value_key="dhw_priority",
+        translation_key="dhw_priority",
+        icon="mdi:water-boiler-alert",
+        entity_category=EntityCategory.CONFIG,
+        set_fn=lambda coord, on: coord.async_set_dhw_priority(on),
+    ),
+    EcoalSwitchDescription(
+        key="exhaust_temp_regulator",
+        value_key="exhaust_temp_regulator",
+        translation_key="exhaust_temp_regulator",
+        icon="mdi:smoke-detector-variant",
+        entity_category=EntityCategory.CONFIG,
+        set_fn=lambda coord, on: coord.async_set_exhaust_temp_regulator(on),
     ),
 )
 
@@ -113,16 +132,22 @@ class EcoalSwitch(CoordinatorEntity[EcoalCoordinator], SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         desc = self.entity_description
-        if desc.is_auto_mode:
+        if desc.set_fn is not None:
+            await desc.set_fn(self.coordinator, True)
+        elif desc.is_auto_mode:
             await self.coordinator.client.set_auto_mode(True)
+            await self.coordinator.async_request_refresh()
         else:
             await self.coordinator.client.set_switch(desc.param, True)
-        await self.coordinator.async_request_refresh()
+            await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         desc = self.entity_description
-        if desc.is_auto_mode:
+        if desc.set_fn is not None:
+            await desc.set_fn(self.coordinator, False)
+        elif desc.is_auto_mode:
             await self.coordinator.client.set_auto_mode(False)
+            await self.coordinator.async_request_refresh()
         else:
             await self.coordinator.client.set_switch(desc.param, False)
-        await self.coordinator.async_request_refresh()
+            await self.coordinator.async_request_refresh()

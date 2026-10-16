@@ -24,10 +24,31 @@
       "valve_3d": { "name": "Zawór trójdrogowy" },
       "cwu_mixer": { "name": "Zawór mieszający CWU" }
     },
+    "button": {
+      "refill_hopper": { "name": "Zasypano zasobnik (100%)" },
+      "ack_alarms": { "name": "Potwierdź alarmy" },
+      "sync_clock": { "name": "Synchronizuj zegar" }
+    },
     "climate": {
       "heating": { "name": "Ogrzewanie" },
       "hot_water": { "name": "Ciepła woda" },
       "floor_heating": { "name": "Ogrzewanie podłogowe" }
+    },
+    "number": {
+      "hopper_capacity": { "name": "Pojemność zasobnika" },
+      "feeder_max_runtime": { "name": "Czas pracy do opróżnienia zasobnika" },
+      "blower_correction": { "name": "Korekta dmuchawy" }
+    },
+    "select": {
+      "feeder_mode": {
+        "name": "Tryb algorytmu podajnika",
+        "state": {
+          "retort_manual": "Retortowy - ręczny",
+          "retort_group": "Retortowy - spalanie grupowe",
+          "retort_ecoal": "Retortowy - algorytm eCoal",
+          "batch": "Zasypowy"
+        }
+      }
     },
     "sensor": {
       "floor_temp": { "name": "Temperatura podłogowa" },
@@ -49,6 +70,7 @@
       "floor_day_temp": { "name": "Temp. podłogowa dzienna" },
       "floor_night_temp": { "name": "Temp. podłogowa nocna" },
       "fuel_load_pct": { "name": "Zapas paliwa" },
+      "fuel_remaining_kg": { "name": "Pozostało węgla" },
       "feeding_pct": { "name": "Podawanie" },
       "heating_state": { "name": "Stan grzania" },
       "setpoint_mode": { "name": "Tryb zadawania" },
@@ -58,6 +80,7 @@
       "day_night": { "name": "Dzień/Noc" },
       "controller_datetime": { "name": "Zegar sterownika" },
       "fuel_load_date": { "name": "Data zasypania" },
+      "estimated_empty_date": { "name": "Przewidywany koniec opału" },
       "inputs": { "name": "Wejścia" }
     },
     "switch": {
@@ -66,7 +89,9 @@
       "mixer_pump": { "name": "Pompa mieszająca" },
       "air_pump": { "name": "Dmuchawa" },
       "coal_feeder": { "name": "Podajnik" },
-      "auto_mode": { "name": "Tryb automatyczny" }
+      "auto_mode": { "name": "Tryb automatyczny" },
+      "dhw_priority": { "name": "Priorytet CWU" },
+      "exhaust_temp_regulator": { "name": "Regulator temperatury spalin" }
     }
   }
 }

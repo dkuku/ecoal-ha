@@ -10,7 +10,13 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import PERCENTAGE, EntityCategory, UnitOfTemperature, UnitOfTime
+from homeassistant.const import (
+    PERCENTAGE,
+    EntityCategory,
+    UnitOfMass,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -207,6 +213,15 @@ SENSOR_DESCRIPTIONS: tuple[EcoalSensorDescription, ...] = (
         icon="mdi:basket-fill",
     ),
     EcoalSensorDescription(
+        key="fuel_remaining_kg",
+        value_key="fuel_remaining_kg",
+        translation_key="fuel_remaining_kg",
+        device_class=SensorDeviceClass.WEIGHT,
+        native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:weight-kilogram",
+    ),
+    EcoalSensorDescription(
         key="feeding_pct",
         value_key="feeding_pct",
         translation_key="feeding_pct",
@@ -272,6 +287,13 @@ DIAG_DESCRIPTIONS: tuple[EcoalSensorDescription, ...] = (
         value_key="fuel_load_date",
         translation_key="fuel_load_date",
         icon="mdi:calendar",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    EcoalSensorDescription(
+        key="estimated_empty_date",
+        value_key="estimated_empty_date",
+        translation_key="estimated_empty_date",
+        icon="mdi:calendar-alert",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
     EcoalSensorDescription(

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 import aiohttp
@@ -35,19 +35,141 @@ CMD_SETTINGS = "02010005001600002403"
 CMD_AUTO_ON = "020100020033020001006503"
 CMD_AUTO_OFF = "020100020033020000009103"
 
+# eCMD_CFG subcommands (CMD 0x05)
+CFG_SET_DATE = 6                  # 0x06 - Set controller date/time
+CFG_ACK_ALARM = 9                 # 0x09 - Acknowledge active alarms
+CFG_RESET_FEEDER_TIME = 24        # 0x18 - Reset feeder runtime / refill hopper (2-byte LE kg)
+
 # ePARAM IDs (from firmware JS)
-PARAM_CO_ZADANA = 40       # 0x28
-PARAM_CO_OBNIZONA = 41     # 0x29
-PARAM_CWU_ZADANA = 17      # 0x11
-PARAM_CWU_OBNIZONA = 29    # 0x1D
-PARAM_PROG_CO_TAB = 24     # 0x18 - CO weekly program (42 bytes)
-PARAM_PROG_CWU_TAB = 25    # 0x19 - CWU weekly program (42 bytes)
-PARAM_CWU_TRYB = 16        # 0x10 - CWU work mode
-PARAM_MIESZ_AKTYWACJA = 19 # 0x13 - Mixer circuit activation (floor heating on/off)
-PARAM_TRYB_PRACY = 51      # 0x33 - auto/manual mode
-PARAM_PODL_DZIENNA = 84    # 0x54 - Floor day temperature setpoint
-PARAM_PODL_NOCNA = 85      # 0x55 - Floor night temperature setpoint
-PARAM_PROG_PODL_TAB = 87   # 0x57 - Floor weekly program (42 bytes)
+# --- Wdrożone w Home Assistant ---
+PARAM_MOC_DMUCH = 8                   # 0x08 - Current blower power (%)
+PARAM_CWU_TRYB = 16                   # 0x10 - CWU work mode
+PARAM_CWU_ZADANA = 17                 # 0x11 - Target DHW temp (°C)
+PARAM_PROG_CO_TAB = 24                # 0x18 - CO weekly program (42 bytes)
+PARAM_PROG_CWU_TAB = 25               # 0x19 - CWU weekly program (42 bytes)
+PARAM_CWU_OBNIZONA = 29               # 0x1D - DHW lowered amount (°C)
+PARAM_MIESZ_AKTYWACJA = 19            # 0x13 - Mixer circuit activation
+PARAM_CO_ZADANA = 40                  # 0x28 - Target boiler temp (°C)
+PARAM_CO_OBNIZONA = 41                # 0x29 - CO lowered amount (°C)
+PARAM_TRYB_PRACY = 51                 # 0x33 - Auto/manual mode
+PARAM_PODAJNIK_CZASALARM = 79         # 0x4F - Feeder runtime to empty hopper (minutes)
+PARAM_PODL_DZIENNA = 84               # 0x54 - Floor day temperature setpoint
+PARAM_PODL_NOCNA = 85                 # 0x55 - Floor night temperature setpoint
+PARAM_PROG_PODL_TAB = 87              # 0x57 - Floor weekly program (42 bytes)
+PARAM_KOREKTA_DMUCHAWY = 94           # 0x5E - Blower power correction (-6..+6 %)
+PARAM_REGULATOR_SPALIN = 98           # 0x62 - Exhaust temperature regulator (0=off, 1=on)
+PARAM_PRIORYTET_CWU = 112             # 0x70 - DHW priority (0=off, 1=on)
+PARAM_TYP_PODAJNIKA = 119             # 0x77 - Feeder combustion algorithm (0=manual, 1=group, 2=eCoal, 3=batch)
+
+# --- Dostępne w sterowniku (niewdrożone) ---
+# Histerezy i limity temperatur
+PARAM_CWU_HIST = 18                   # 0x12 - Histereza CWU (°C x 10)
+PARAM_CO_MIN = 38                     # 0x26 - Minimalna dopuszczalna temp. zadana CO (°C)
+PARAM_CO_MAX = 39                     # 0x27 - Maksymalna dopuszczalna temp. zadana CO (°C)
+PARAM_PODL_HISTEREZA = 86             # 0x56 - Histereza podłogówki (°C x 10)
+PARAM_MAX_TEMP_SPALIN = 96            # 0x60 - Maksymalna temp. spalin dla regulatora (°C)
+PARAM_HIST_TEMP_CO = 120              # 0x78 - Histereza temperatury kotła CO (°C)
+PARAM_PODBICIE_TEMP = 121             # 0x79 - Podbicie temp. kotła CO przy grzaniu CWU (°C)
+
+# Tryb letni i pogodowy
+PARAM_PROG_POGODOWY_TAB = 26          # 0x1A - Harmonogram pogodowy CO (42 bytes)
+PARAM_PROG_CO_M10 = 30                # 0x1E - Temp. zadana CO dla -10°C na zewnątrz (°C)
+PARAM_PROG_CO_P10 = 31                # 0x1F - Temp. zadana CO dla +10°C na zewnątrz (°C)
+PARAM_ZADAWANIE = 50                  # 0x32 - Tryb zadawania CO (0=stała/program, 1=pogodowy)
+PARAM_AUTOLATO = 76                   # 0x4C - Automatyczny tryb letni (0=wył, 1=wł)
+PARAM_AUTOLATO_TEMP = 77              # 0x4D - Temp. zewnętrzna załączenia Auto-Lato (°C)
+PARAM_PROG_AUTOLATO = 83              # 0x53 - Harmonogram Auto-Lato (42 bytes)
+
+# Regulator pokojowy
+PARAM_PROG_POKOJOWY_TAB = 27          # 0x1B - Harmonogram regulatora pokojowego (42 bytes)
+PARAM_PROG_POKOJOWY_DZIENNA = 32      # 0x20 - Temp. pokojowa dzienna (°C x 10)
+PARAM_PROG_POKOJOWY_NOCNA = 33        # 0x21 - Temp. pokojowa nocna (°C x 10)
+PARAM_WEW_ZADAWANIE = 78              # 0x4E - Tryb reg. pokojowego (0=wył, 1=program, 2=termostat)
+PARAM_REG_POK_HISTEREZA = 80          # 0x50 - Histereza regulatora pokojowego (°C x 10)
+
+# Pompy CO, cyrkulacja, podłogówka
+PARAM_OBIEG_CZASPRACY = 22            # 0x16 - Czas pracy pompy cyrkulacyjnej
+PARAM_OBIEG_POSTOJ = 23               # 0x17 - Czas postoju pompy cyrkulacyjnej
+PARAM_PROG_OBIEG_TAB = 28             # 0x1C - Harmonogram pompy cyrkulacyjnej (42 bytes)
+PARAM_POMPACO_TRYB = 69               # 0x45 - Praca cykliczna pompy CO (0=wył, 1=wł)
+PARAM_POMPACO_PRACA = 70              # 0x46 - Czas pracy cyklicznej pompy CO (minuty)
+PARAM_POMPACO_POSTOJ = 71             # 0x47 - Czas postoju cyklicznej pompy CO (minuty)
+PARAM_POMPA_CWU_WYJSCIE = 88          # 0x58 - Wyjście pompy CWU
+PARAM_AKTYWACJA_MIESZAJACA_LATO = 93  # 0x5D - Aktywacja mieszacza w lecie
+PARAM_TEMP_ZAL_CYRK = 113             # 0x71 - Temp. załączenia cyrkulacji CWU (°C)
+PARAM_PRACA_AUTO_CYRK = 114           # 0x72 - Automatyczna praca cyrkulacji CWU
+PARAM_TEMP_ZAL_MIESZ = 115            # 0x73 - Temp. załączenia pompy mieszającej (°C)
+PARAM_PODLOGOWA_CZASPRACY = 116       # 0x74 - Czas pracy obwodu podłogowego
+PARAM_PODLOGOWA_POSTOJ = 117          # 0x75 - Czas postoju obwodu podłogowego
+PARAM_PRACA_POMPCOPODL = 123          # 0x7B - Praca pompy CO przy podłogówce
+PARAM_POSTOJ_POMPCOPODL = 124         # 0x7C - Postój pompy CO przy podłogówce
+
+# Parametry podajnika i dmuchawy (tryb ręczny i podtrzymanie)
+PARAM_MOC_DMUCH_PODT = 9              # 0x09 - Moc dmuchawy w podtrzymaniu (%)
+PARAM_POD_CZASPRACY_PODT = 10         # 0x0A - Czas pracy podajnika w podtrzymaniu (s)
+PARAM_POD_PRZERWA_PODT = 11           # 0x0B - Czas przerwy podajnika w podtrzymaniu (s)
+PARAM_POWT_PODT = 12                  # 0x0C - Ilość powtórzeń w podtrzymaniu
+PARAM_POD_POST_PODT = 13              # 0x0D - Czas postoju podajnika w podtrzymaniu (min)
+PARAM_POD_MAX_TEMP = 14               # 0x0E - Maks. temp. podajnika - alarm (°C)
+PARAM_POD_CZAS_OBR = 15               # 0x0F - Czas obrotu podajnika
+PARAM_POD_CZASPRACY_GRZ = 34          # 0x22 - Czas pracy podajnika w grzaniu ręcznym (s)
+PARAM_POD_POST_GRZ = 35               # 0x23 - Czas postoju podajnika w grzaniu ręcznym (s)
+PARAM_PODAJNIK_CZASPRACY_GRZANIE = 82 # 0x52 - Czas podawania w grzaniu (s)
+PARAM_MOC_DMUCH_GRZ = 97              # 0x61 - Moc dmuchawy w grzaniu ręcznym (%)
+PARAM_CZAS_POSTOJU_GRZANIE = 118      # 0x76 - Czas postoju w grzaniu ręcznym (s)
+PARAM_PODAJNIK_CZASWYRZUTU = 122      # 0x7A - Czas awaryjnego wyrzutu paliwa (s)
+
+# Strojenie spalania grupowego (moce dmuchawy i dawki paliwa dla 8..30 kW)
+PARAM_ALG_MAXMOC = 100                # 0x64 - Maksymalna moc kotła w spalaniu grupowym (kW)
+PARAM_ALG_MINMOC = 106                # 0x6A - Minimalna moc kotła w spalaniu grupowym (kW)
+PARAM_ALG_MOCDMUCH8 = 101             # 0x65 - Moc dmuchawy dla 8 kW (%)
+PARAM_ALG_MOCDMUCH12 = 102            # 0x66 - Moc dmuchawy dla 12 kW (%)
+PARAM_ALG_MOCDMUCH16 = 103            # 0x67 - Moc dmuchawy dla 16 kW (%)
+PARAM_ALG_MOCDMUCH20 = 104            # 0x68 - Moc dmuchawy dla 20 kW (%)
+PARAM_ALG_MOCDMUCH25 = 105            # 0x69 - Moc dmuchawy dla 25 kW (%)
+PARAM_ALG_MOCDMUCH30 = 125            # 0x7D - Moc dmuchawy dla 30 kW (%)
+PARAM_ALG_ILGRUP8 = 126               # 0x7E - Ilość podań paliwa dla 8 kW
+PARAM_ALG_ILGRUP12 = 127              # 0x7F - Ilość podań paliwa dla 12 kW
+PARAM_ALG_ILGRUP16 = 128              # 0x80 - Ilość podań paliwa dla 16 kW
+PARAM_ALG_ILGRUP20 = 129              # 0x81 - Ilość podań paliwa dla 20 kW
+PARAM_ALG_ILGRUP25 = 130              # 0x82 - Ilość podań paliwa dla 25 kW
+PARAM_ALG_ILGRUP30 = 131              # 0x83 - Ilość podań paliwa dla 30 kW
+
+# Czujniki bezpieczeństwa i alarmy
+PARAM_ALARM_CZASOPOZNIENIA = 89       # 0x59 - Czas opóźnienia zgłoszenia alarmu (s)
+PARAM_ALARM_INWERSJA = 90             # 0x5A - Inwersja wejść alarmowych (0/1)
+PARAM_ALARM_ZATRZYMANIE = 91          # 0x5B - Zatrzymanie kotła przy alarmie (0/1)
+PARAM_ALG_WYGASZENIA = 111            # 0x6F - Algorytm wygaszania kotła (0/1)
+PARAM_CZUJNIK_ZAMZAS = 132            # 0x84 - Czujnik otwarcia zasobnika paliwa (0/1)
+PARAM_CZUJNIK_ZERZAW = 133            # 0x85 - Czujnik zerwania zawleczki podajnika (0/1)
+PARAM_TYP_KOTLA = 92                  # 0x5C - Identyfikator typu kotła
+
+# Offsety kalibracji czujników temperatury (-10.0..+10.0 °C x 10)
+PARAM_OFFSET_Z1 = 0                   # 0x00 - Offset czujnika Z1
+PARAM_OFFSET_WEW = 1                  # 0x01 - Offset czujnika wewnętrznego (pokojowego)
+PARAM_OFFSET_ZEW = 2                  # 0x02 - Offset czujnika zewnętrznego
+PARAM_OFFSET_CWU = 3                  # 0x03 - Offset czujnika CWU
+PARAM_OFFSET_POW = 4                  # 0x04 - Offset czujnika powrotu
+PARAM_OFFSET_POD = 5                  # 0x05 - Offset czujnika podajnika
+PARAM_OFFSET_CO = 6                   # 0x06 - Offset czujnika kotła CO
+PARAM_OFFSET_SPA = 7                  # 0x07 - Offset czujnika spalin
+
+# Parametry sieciowe i zdalnego dostępu
+PARAM_IP = 45                         # 0x2D - Adres IP sterownika
+PARAM_MASKA = 46                      # 0x2E - Maska podsieci
+PARAM_BRAMA = 47                      # 0x2F - Brama domyślna
+PARAM_MAC = 66                        # 0x42 - Adres MAC
+PARAM_SERWER_PORT = 72                # 0x48 - Port serwera eSterownik.pl
+PARAM_SERWER_ID = 73                  # 0x49 - ID urządzenia w chmurze
+PARAM_SERWER_AKTYWACJA = 74           # 0x4A - Aktywacja chmury eSterownik.pl
+PARAM_SERWER_IP = 75                  # 0x4B - Adres IP serwera chmury
+PARAM_OKRES_REJESTRACJI = 95          # 0x5F - Okres rejestracji historii (s)
+
+# Feeder combustion modes (eTYP_PODAJNIKA)
+FEEDER_MODE_MANUAL = 0            # Retortowy - ręczny (stałe czasy)
+FEEDER_MODE_GROUP = 1             # Retortowy - automatyczny (spalanie grupowe)
+FEEDER_MODE_ECOAL = 2             # Retortowy - eCoal (modulowany PID)
+FEEDER_MODE_BATCH = 3             # Zasypowy
 
 # CWU work modes
 CWU_MODE_WINTER = 0
@@ -251,17 +373,30 @@ class EcoalClient:
         result["feeder_runtime"] = round(feeder_secs / 60.0, 1)
 
         # Fuel load date (bytes 68-72)
+        fuel_load_dt: datetime | None = None
         try:
-            result["fuel_load_date"] = datetime(
+            fuel_load_dt = datetime(
                 2000 + d[68], d[69], d[70], d[71], d[72]
-            ).isoformat()
+            )
+            result["fuel_load_date"] = fuel_load_dt.isoformat()
         except (ValueError, OverflowError):
             result["fuel_load_date"] = None
 
         # Fuel data (bytes 73-77)
-        result["fuel_remaining"] = d[73] | (d[74] << 8) | (d[77] << 16)
+        nowyzasyp_min = d[73] | (d[74] << 8) | (d[77] << 16)
+        result["fuel_remaining"] = nowyzasyp_min
         result["fuel_load_pct"] = d[75]
         result["feeding_pct"] = d[76]
+
+        if fuel_load_dt is not None and nowyzasyp_min > 0:
+            try:
+                result["estimated_empty_date"] = (
+                    fuel_load_dt + timedelta(minutes=nowyzasyp_min)
+                ).isoformat()
+            except OverflowError:
+                result["estimated_empty_date"] = None
+        else:
+            result["estimated_empty_date"] = None
 
         # Floor heating setpoints (bytes 78-81)
         result["floor_day_temp"] = _decode_temp(d[78], d[79])
@@ -350,6 +485,104 @@ class EcoalClient:
 
     async def set_mixer_activation(self, on: bool) -> bool:
         cmd = _build_value_cmd(PARAM_MIESZ_AKTYWACJA, 1 if on else 0)
+        result = await self._send(cmd)
+        return result is not None
+
+    async def refill_hopper(self, kg: int = 150) -> bool:
+        """Reset feeder runtime counter and record new coal refill (100% hopper)."""
+        kg = max(1, min(1000, int(kg)))
+        cmd = _build_frame(0x05, 0x00, CFG_RESET_FEEDER_TIME, [kg & 0xFF, (kg >> 8) & 0xFF])
+        result = await self._send(cmd)
+        return result is not None
+
+    async def ack_alarms(self) -> bool:
+        """Acknowledge active controller alarms."""
+        cmd = _build_frame(0x05, 0x00, CFG_ACK_ALARM, [0x00])
+        result = await self._send(cmd)
+        return result is not None
+
+    async def sync_clock(self, now: datetime | None = None) -> bool:
+        """Synchronize controller clock with current system time."""
+        if now is None:
+            now = datetime.now()
+        data = [
+            max(0, now.year - 2000) & 0xFF,
+            now.month & 0xFF,
+            now.day & 0xFF,
+            now.hour & 0xFF,
+            now.minute & 0xFF,
+            now.second & 0xFF,
+        ]
+        cmd = _build_frame(0x05, 0x00, CFG_SET_DATE, data)
+        result = await self._send(cmd)
+        return result is not None
+
+    async def get_feeder_mode(self) -> int | None:
+        """Read current feeder combustion algorithm (PARAM 119)."""
+        data = await self.read_param(PARAM_TYP_PODAJNIKA)
+        if not data:
+            return None
+        return data[0]
+
+    async def set_feeder_mode(self, mode: int) -> bool:
+        """Set feeder combustion algorithm (0=manual, 1=group, 2=eCoal, 3=batch)."""
+        cmd = _build_value_cmd(PARAM_TYP_PODAJNIKA, int(mode))
+        result = await self._send(cmd)
+        return result is not None
+
+    async def get_feeder_max_runtime(self) -> int | None:
+        """Read feeder runtime required to empty a full hopper in minutes (PARAM 79)."""
+        data = await self.read_param(PARAM_PODAJNIK_CZASALARM)
+        if not data or len(data) < 2:
+            return None
+        return data[0] | (data[1] << 8)
+
+    async def set_feeder_max_runtime(self, minutes: int) -> bool:
+        """Set feeder runtime required to empty a full hopper in minutes (PARAM 79)."""
+        cmd = _build_value_cmd(PARAM_PODAJNIK_CZASALARM, int(minutes))
+        result = await self._send(cmd)
+        return result is not None
+
+    async def get_dhw_priority(self) -> bool | None:
+        """Read DHW priority (PARAM 112)."""
+        data = await self.read_param(PARAM_PRIORYTET_CWU)
+        if not data:
+            return None
+        return bool(data[0])
+
+    async def set_dhw_priority(self, on: bool) -> bool:
+        """Set DHW priority (PARAM 112)."""
+        cmd = _build_value_cmd(PARAM_PRIORYTET_CWU, 1 if on else 0)
+        result = await self._send(cmd)
+        return result is not None
+
+    async def get_blower_correction(self) -> int | None:
+        """Read blower power correction percentage (PARAM 94, -6..+6 %)."""
+        data = await self.read_param(PARAM_KOREKTA_DMUCHAWY)
+        if not data or len(data) < 2:
+            return None
+        val = data[0] | (data[1] << 8)
+        if val > 32767:
+            val -= 65536
+        return val
+
+    async def set_blower_correction(self, correction: int) -> bool:
+        """Set blower power correction percentage (PARAM 94, -6..+6 %)."""
+        correction = max(-6, min(6, int(correction)))
+        cmd = _build_value_cmd(PARAM_KOREKTA_DMUCHAWY, correction)
+        result = await self._send(cmd)
+        return result is not None
+
+    async def get_exhaust_temp_regulator(self) -> bool | None:
+        """Read exhaust temperature regulator state (PARAM 98)."""
+        data = await self.read_param(PARAM_REGULATOR_SPALIN)
+        if not data:
+            return None
+        return bool(data[0])
+
+    async def set_exhaust_temp_regulator(self, on: bool) -> bool:
+        """Set exhaust temperature regulator state (PARAM 98)."""
+        cmd = _build_value_cmd(PARAM_REGULATOR_SPALIN, 1 if on else 0)
         result = await self._send(cmd)
         return result is not None
 

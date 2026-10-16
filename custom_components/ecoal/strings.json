@@ -24,10 +24,31 @@
       "valve_3d": { "name": "3-way valve" },
       "cwu_mixer": { "name": "CWU mixer valve" }
     },
+    "button": {
+      "refill_hopper": { "name": "Refill hopper (100%)" },
+      "ack_alarms": { "name": "Acknowledge alarms" },
+      "sync_clock": { "name": "Synchronize clock" }
+    },
     "climate": {
       "heating": { "name": "Heating" },
       "hot_water": { "name": "Hot Water" },
       "floor_heating": { "name": "Floor Heating" }
+    },
+    "number": {
+      "hopper_capacity": { "name": "Hopper capacity" },
+      "feeder_max_runtime": { "name": "Feeder max runtime" },
+      "blower_correction": { "name": "Blower power correction" }
+    },
+    "select": {
+      "feeder_mode": {
+        "name": "Feeder mode",
+        "state": {
+          "retort_manual": "Retort - Manual",
+          "retort_group": "Retort - Group combustion",
+          "retort_ecoal": "Retort - eCoal algorithm",
+          "batch": "Batch furnace"
+        }
+      }
     },
     "sensor": {
       "floor_temp": { "name": "Floor temperature" },
@@ -49,6 +70,7 @@
       "floor_day_temp": { "name": "Floor day temperature" },
       "floor_night_temp": { "name": "Floor night temperature" },
       "fuel_load_pct": { "name": "Fuel load" },
+      "fuel_remaining_kg": { "name": "Fuel remaining" },
       "feeding_pct": { "name": "Feeding" },
       "heating_state": { "name": "Heating state" },
       "setpoint_mode": { "name": "Setpoint mode" },
@@ -58,6 +80,7 @@
       "day_night": { "name": "Day/Night" },
       "controller_datetime": { "name": "Controller clock" },
       "fuel_load_date": { "name": "Fuel load date" },
+      "estimated_empty_date": { "name": "Estimated empty date" },
       "inputs": { "name": "Inputs" }
     },
     "switch": {
@@ -66,7 +89,9 @@
       "mixer_pump": { "name": "Mixer pump" },
       "air_pump": { "name": "Blower" },
       "coal_feeder": { "name": "Coal feeder" },
-      "auto_mode": { "name": "Auto mode" }
+      "auto_mode": { "name": "Auto mode" },
+      "dhw_priority": { "name": "DHW priority" },
+      "exhaust_temp_regulator": { "name": "Exhaust temperature regulator" }
     }
   }
 }
