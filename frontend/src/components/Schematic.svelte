@@ -7,11 +7,14 @@
     returnTemp = null,
     exhaustTemp = null,
     outdoorTemp = null,
+    feederTemp = null,
+    fuelPct = 0,
     chPump = false,
     dhwPump = false,
     mixerPump = false,
     blowerActive = false,
     blowerPower = 0,
+    feederActive = false,
     heatingState = 0,
   } = $props();
 
@@ -47,6 +50,11 @@
           <stop offset="60%" stop-color="#f97316" />
           <stop offset="100%" stop-color="#fef08a" />
         </linearGradient>
+
+        <!-- Clip path for feeder screw auger tube -->
+        <clipPath id="feederTubeClip">
+          <rect x="36" y="303" width="94" height="22" rx="2" />
+        </clipPath>
       </defs>
 
       <!-- PIPES: Static Background Lines (with full vertical continuity) -->
@@ -104,12 +112,62 @@
         class:pipe-flow-reverse={dhwPump}
       />
 
+      <!-- ============================================== -->
+      <!-- FUEL HOPPER & AUGER SCREW (Zasobnik i Ślimak)  -->
+      <!-- ============================================== -->
+
+      <!-- Zasobnik Opału (Fuel Hopper) -->
+      <rect x="12" y="165" width="56" height="10" rx="2" fill="#334155" stroke="#64748b" stroke-width="1.5" />
+      <polygon points="14,175 66,175 62,275 48,302 32,302 18,275" fill="#1e293b" stroke="#475569" stroke-width="1.5" />
+      <polygon points="17,215 63,215 61,274 47,300 33,300 19,274" fill="#090d16" opacity="0.85" />
+      <text x="40" y="195" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle">ZASOBNIK</text>
+      <text x="40" y="210" fill="var(--accent-flame)" font-size="11" font-weight="800" text-anchor="middle">{fuelPct}%</text>
+
+      <!-- Feeder Tube (Rura podajnika ślimakowego) -->
+      <rect x="35" y="302" width="105" height="24" rx="3" fill="#090d16" stroke="#475569" stroke-width="1.5" />
+
+      <!-- Auger Screw (Ślimak) inside clipped tube -->
+      <g clip-path="url(#feederTubeClip)">
+        <!-- Shaft -->
+        <line x1="30" y1="314" x2="140" y2="314" stroke="#64748b" stroke-width="3" stroke-linecap="round" />
+        <!-- Helical screw coils (animates towards retort when feederActive) -->
+        <g class:auger-active={feederActive}>
+          <path
+            d="M 20 305 Q 23 314 18 323 M 33 305 Q 36 314 31 323 M 46 305 Q 49 314 44 323 M 59 305 Q 62 314 57 323 M 72 305 Q 75 314 70 323 M 85 305 Q 88 314 83 323 M 98 305 Q 101 314 96 323 M 111 305 Q 114 314 109 323 M 124 305 Q 127 314 122 323 M 137 305 Q 140 314 135 323"
+            stroke="#cbd5e1"
+            stroke-width="2.5"
+            fill="none"
+            stroke-linecap="round"
+          />
+        </g>
+      </g>
+
+      <!-- Feeder Motor / Gearbox (Motoreduktor) -->
+      <rect x="10" y="300" width="25" height="28" rx="4" fill="#334155" stroke={feederActive ? '#22c55e' : '#64748b'} stroke-width="1.5" />
+      <line x1="16" y1="304" x2="16" y2="324" stroke="#475569" stroke-width="1.5" />
+      <line x1="22" y1="304" x2="22" y2="324" stroke="#475569" stroke-width="1.5" />
+      <circle cx="28" cy="314" r="3" fill={feederActive ? '#22c55e' : '#64748b'} />
+
+      <!-- Feeder Temperature Sensor & Badge -->
+      <rect x="90" y="296" width="4" height="7" fill="#f59e0b" />
+      <rect x="68" y="266" width="56" height="20" rx="4" fill="#0f172a" stroke="#cbd5e1" stroke-width="1" />
+      <text x="96" y="280" fill="#cbd5e1" font-size="10" font-weight="700" text-anchor="middle">
+        {feederTemp !== null && feederTemp !== undefined ? `${feederTemp.toFixed(1)}°C` : '--°C'}
+      </text>
+      <text x="96" y="260" fill="#94a3b8" font-size="9" text-anchor="middle">Podajnik</text>
+
       <!-- BOILER (Kocioł eCoal) -->
       <rect x="70" y="140" width="160" height="230" rx="12" fill="url(#boilerGrad)" stroke="#475569" stroke-width="2" />
       <text x="150" y="170" fill="#94a3b8" font-size="14" font-weight="700" text-anchor="middle">KOCIOŁ eCoal</text>
 
       <!-- Combustion Chamber & Flame -->
       <rect x="95" y="240" width="110" height="110" rx="8" fill="#090d16" stroke="#f97316" stroke-width="1.5" />
+      
+      <!-- Cast Iron Burner Retort (Retorta podajnika) -->
+      <path d="M 125 324 L 135 338 L 165 338 L 175 324 Z" fill="#334155" stroke="#94a3b8" stroke-width="1.5" />
+      <ellipse cx="150" cy="324" rx="20" ry="4" fill="#f97316" opacity={isFlameActive ? '0.9' : '0.3'} />
+
+      <!-- Animated Flame -->
       <g class="flame-anim" class:flame-inactive={!isFlameActive}>
         <path d="M 150 260 C 130 285 115 310 125 335 C 135 350 165 350 175 335 C 185 310 170 285 150 260 Z" fill="url(#flameGrad)" />
         <path d="M 150 280 C 140 295 130 315 138 332 C 145 342 155 342 162 332 C 170 315 160 295 150 280 Z" fill="#fef08a" />

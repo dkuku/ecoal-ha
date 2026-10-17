@@ -44,6 +44,9 @@
     mixerPump={!!status?.mixer_pump}
     blowerActive={!!status?.air_pump}
     blowerPower={status?.air_pump_power || 0}
+    feederActive={!!status?.coal_feeder}
+    feederTemp={status?.feeder_temp}
+    fuelPct={status?.fuel_load_pct ?? 0}
     heatingState={status?.heating || 0}
   />
 

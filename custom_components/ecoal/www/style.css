@@ -357,6 +357,20 @@ body {
   animation: none !important;
 }
 
+/* Auger Screw (Ślimak podajnika) Animation */
+.auger-active {
+  animation: augerFeed 0.6s linear infinite;
+}
+
+@keyframes augerFeed {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(13px);
+  }
+}
+
 /* Quick Metrics Cards Grid */
 .metrics-grid {
   display: grid;
