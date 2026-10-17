@@ -49,39 +49,62 @@
         </linearGradient>
       </defs>
 
-      <!-- Pipes Background (Static Lines) -->
-      <!-- Hot Supply Pipe (Boiler -> Radiators -> CWU) -->
-      <path d="M 230 180 L 400 180 L 400 100 L 720 100" class="pipe-hot" />
-      <path d="M 400 180 L 520 180 L 520 220" class="pipe-hot" />
+      <!-- PIPES: Static Background Lines (with full vertical continuity) -->
+      <!-- Hot Supply Pipe: Boiler -> Radiators (with vertical drop into radiator) -->
+      <path d="M 230 180 L 400 180 L 400 110 L 720 110 L 720 180" class="pipe-hot" />
+      <!-- Hot Supply Branch: CWU (with vertical drop into boiler) -->
+      <path d="M 400 180 L 520 180 L 520 200" class="pipe-hot" />
+      <!-- Vertical Mixer Bypass: connecting supply down to return -->
+      <path d="M 340 180 L 340 330" class="pipe-hot" />
 
-      <!-- Return Pipe (Radiators & CWU -> Mixer -> Boiler) -->
-      <path d="M 720 380 L 340 380 L 340 330 L 230 330" class="pipe-cold" />
-      <path d="M 520 330 L 520 380" class="pipe-cold" />
+      <!-- Cold Return Pipe: Radiators bottom (vertical drop) -> Mixer -> Boiler -->
+      <path d="M 720 310 L 720 380 L 340 380 L 340 330 L 230 330" class="pipe-cold" />
+      <!-- Cold Return Branch: CWU bottom (vertical drop into return) -->
+      <path d="M 520 360 L 520 380" class="pipe-cold" />
 
-      <!-- Animated Pipe Flow Overlays -->
+      <!-- ANIMATED PIPE FLOW OVERLAYS -->
+      <!-- Flow to Radiators: full route including vertical connection -->
       <path
-        d="M 230 180 L 400 180 L 400 100 L 720 100"
+        d="M 230 180 L 400 180 L 400 110 L 720 110 L 720 180"
         stroke="#fca5a5"
         stroke-width="3"
         fill="none"
         class:pipe-flow={chPump || heatingState > 0}
       />
+      <!-- Flow to CWU Tank -->
       <path
-        d="M 400 180 L 520 180 L 520 220"
+        d="M 400 180 L 520 180 L 520 200"
         stroke="#fca5a5"
         stroke-width="3"
         fill="none"
         class:pipe-flow={dhwPump}
       />
+      <!-- Flow through Vertical Mixer Bypass -->
       <path
-        d="M 720 380 L 340 380 L 340 330 L 230 330"
+        d="M 340 180 L 340 330"
+        stroke="#a5b4fc"
+        stroke-width="3"
+        fill="none"
+        class:pipe-flow={mixerPump}
+      />
+      <!-- Return Flow from Radiators -->
+      <path
+        d="M 720 310 L 720 380 L 340 380 L 340 330 L 230 330"
         stroke="#93c5fd"
         stroke-width="3"
         fill="none"
         class:pipe-flow-reverse={chPump || mixerPump}
       />
+      <!-- Return Flow from CWU -->
+      <path
+        d="M 520 360 L 520 380"
+        stroke="#93c5fd"
+        stroke-width="3"
+        fill="none"
+        class:pipe-flow-reverse={dhwPump}
+      />
 
-      <!-- BOILER (Kocioł) -->
+      <!-- BOILER (Kocioł eCoal) -->
       <rect x="70" y="140" width="160" height="230" rx="12" fill="url(#boilerGrad)" stroke="#475569" stroke-width="2" />
       <text x="150" y="170" fill="#94a3b8" font-size="14" font-weight="700" text-anchor="middle">KOCIOŁ eCoal</text>
 
@@ -115,45 +138,45 @@
         {dhwTemp !== null && dhwTemp !== undefined ? `${dhwTemp.toFixed(1)}°C` : '--°C'}
       </text>
 
-      <!-- CWU Pump -->
-      <g class="pump-group" class:pump-active={dhwPump} transform="translate(435, 180)">
-        <circle cx="0" cy="0" r="14" fill="#0f172a" stroke="#0284c7" stroke-width="2" />
-        <g class="pump-impeller">
+      <!-- CWU PUMP (Pompa CWU na zasilaniu boilera przy x=450, y=180) -->
+      <g class="pump-group" class:pump-active={dhwPump}>
+        <circle cx="450" cy="180" r="15" fill="#0f172a" stroke="#0284c7" stroke-width="2" />
+        <g>
           {#if dhwPump}
             <animateTransform
               attributeName="transform"
               type="rotate"
-              from="0 0 0"
-              to="360 0 0"
+              from="0 450 180"
+              to="360 450 180"
               dur="1.2s"
               repeatCount="indefinite"
             />
           {/if}
-          <circle cx="0" cy="0" r="2.8" fill="#0284c7" />
-          <path d="M 0 -7 Q 3.5 -3.5 0 0 Q -3.5 3.5 0 7 M -7 0 Q -3.5 -3.5 0 0 Q 3.5 3.5 7 0" stroke="#0284c7" stroke-width="1.8" fill="none" stroke-linecap="round" />
+          <circle cx="450" cy="180" r="2.8" fill="#0284c7" />
+          <path d="M 450 173 Q 453.5 176.5 450 180 Q 446.5 183.5 450 187 M 443 180 Q 446.5 176.5 450 180 Q 453.5 183.5 457 180" stroke="#0284c7" stroke-width="1.8" fill="none" stroke-linecap="round" />
         </g>
       </g>
-      <text x="435" y="155" fill="#94a3b8" font-size="11" text-anchor="middle">Pompa CWU</text>
+      <text x="450" y="155" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">Pompa CWU</text>
 
-      <!-- CO CIRCULATION PUMP (Pompa CO) -->
-      <g class="pump-group" class:pump-active={chPump} transform="translate(620, 100)">
-        <circle cx="0" cy="0" r="15" fill="#0f172a" stroke="#ef4444" stroke-width="2" />
-        <g class="pump-impeller">
+      <!-- CO CIRCULATION PUMP (Pompa CO na zasilaniu grzejników przy x=580, y=110) -->
+      <g class="pump-group" class:pump-active={chPump}>
+        <circle cx="580" cy="110" r="16" fill="#0f172a" stroke="#ef4444" stroke-width="2" />
+        <g>
           {#if chPump}
             <animateTransform
               attributeName="transform"
               type="rotate"
-              from="0 0 0"
-              to="360 0 0"
+              from="0 580 110"
+              to="360 580 110"
               dur="1.2s"
               repeatCount="indefinite"
             />
           {/if}
-          <circle cx="0" cy="0" r="3" fill="#ef4444" />
-          <path d="M 0 -8 Q 4 -4 0 0 Q -4 4 0 8 M -8 0 Q -4 -4 0 0 Q 4 4 8 0" stroke="#ef4444" stroke-width="2" fill="none" stroke-linecap="round" />
+          <circle cx="580" cy="110" r="3" fill="#ef4444" />
+          <path d="M 580 102 Q 584 106 580 110 Q 576 114 580 118 M 572 110 Q 576 106 580 110 Q 584 114 588 110" stroke="#ef4444" stroke-width="2" fill="none" stroke-linecap="round" />
         </g>
       </g>
-      <text x="620" y="75" fill="#94a3b8" font-size="11" text-anchor="middle">Pompa CO</text>
+      <text x="580" y="85" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">Pompa CO</text>
 
       <!-- RADIATORS (Grzejniki) -->
       <rect x="680" y="180" width="80" height="130" rx="6" fill="#1e293b" stroke="#cbd5e1" stroke-width="1.5" />
@@ -162,31 +185,32 @@
       <line x1="740" y1="195" x2="740" y2="295" stroke="#475569" stroke-width="2" />
       <text x="720" y="245" fill="#e2e8f0" font-size="12" font-weight="600" text-anchor="middle">GRZEJNIKI</text>
 
-      <!-- RETURN PUMP & SENSOR (Pompa Mieszacza / Powrót) -->
-      <g class="pump-group" class:pump-active={mixerPump} transform="translate(285, 330)">
-        <circle cx="0" cy="0" r="13" fill="#0f172a" stroke="#6366f1" stroke-width="2" />
-        <g class="pump-impeller">
+      <!-- VERTICAL MIXER PUMP (Pompa Mieszacza na pionowym bypassie przy x=340, y=255) -->
+      <g class="pump-group" class:pump-active={mixerPump}>
+        <circle cx="340" cy="255" r="15" fill="#0f172a" stroke="#6366f1" stroke-width="2" />
+        <g>
           {#if mixerPump}
             <animateTransform
               attributeName="transform"
               type="rotate"
-              from="0 0 0"
-              to="360 0 0"
+              from="0 340 255"
+              to="360 340 255"
               dur="1.2s"
               repeatCount="indefinite"
             />
           {/if}
-          <circle cx="0" cy="0" r="2.5" fill="#6366f1" />
-          <path d="M 0 -6.5 Q 3 -3 0 0 Q -3 3 0 6.5 M -6.5 0 Q -3 -3 0 0 Q 3 3 6.5 0" stroke="#6366f1" stroke-width="1.8" fill="none" stroke-linecap="round" />
+          <circle cx="340" cy="255" r="2.8" fill="#6366f1" />
+          <path d="M 340 248 Q 343.5 251.5 340 255 Q 336.5 258.5 340 262 M 333 255 Q 336.5 251.5 340 255 Q 343.5 258.5 347 255" stroke="#6366f1" stroke-width="1.8" fill="none" stroke-linecap="round" />
         </g>
       </g>
-      <text x="285" y="360" fill="#94a3b8" font-size="11" text-anchor="middle">Mieszacz</text>
+      <text x="365" y="260" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="start">Mieszacz</text>
 
-      <rect x="330" y="390" width="80" height="28" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5" />
-      <text x="370" y="409" fill="#93c5fd" font-size="12" font-weight="700" text-anchor="middle">
+      <!-- RETURN TEMPERATURE SENSOR BADGE (Powrót CO przed kotłem) -->
+      <rect x="245" y="365" width="80" height="28" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5" />
+      <text x="285" y="384" fill="#93c5fd" font-size="12" font-weight="700" text-anchor="middle">
         {returnTemp !== null && returnTemp !== undefined ? `${returnTemp.toFixed(1)}°C` : '--°C'}
       </text>
-      <text x="370" y="435" fill="#94a3b8" font-size="11" text-anchor="middle">Powrót CO</text>
+      <text x="285" y="410" fill="#94a3b8" font-size="11" text-anchor="middle">Powrót CO</text>
 
       <!-- OUTDOOR SENSOR BADGE -->
       <rect x="670" y="20" width="110" height="32" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" />

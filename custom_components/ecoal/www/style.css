@@ -339,10 +339,6 @@ body {
   filter: drop-shadow(0 0 5px currentColor);
 }
 
-.pump-impeller {
-  transform-origin: 0 0;
-}
-
 .flame-anim {
   transform-box: fill-box;
   transform-origin: 50% 100%;
