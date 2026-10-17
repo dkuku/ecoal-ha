@@ -207,8 +207,37 @@ class EcoalApp {
 
     if (tabId === "combustion" || tabId === "advanced" || tabId === "calibration") {
       this.renderParametersTab(tabId);
+      this.loadTabParameters(tabId);
     } else if (tabId === "schedules") {
+      this.renderScheduleMatrix();
       this.loadSchedule(this.activeScheduleId);
+    }
+  }
+
+  async loadTabParameters(groupCategory) {
+    let groupFilter = [];
+    if (groupCategory === "combustion") groupFilter = ["gr_spalanie"];
+    else if (groupCategory === "advanced") groupFilter = ["gr_zaaw", "extended"];
+    else if (groupCategory === "calibration") groupFilter = ["gr_kalib", "gr_krzywa", "gr_user", "gr_eth"];
+
+    const params = ECOAL_PARAMETERS.filter((p) => groupFilter.includes(p.group));
+    for (const p of params) {
+      if (this.paramsCache.has(p.id)) continue;
+      try {
+        const raw = await this.client.readParam(p.id);
+        if (raw && raw.length >= 2) {
+          let val = raw[0] | (raw[1] << 8);
+          if (val > 32767) val -= 65536;
+          const displayVal = val / p.div;
+          this.paramsCache.set(p.id, { val: displayVal });
+          const input = document.getElementById(`inputParam-${p.id}`);
+          if (input && input.value === "") {
+            input.value = displayVal;
+          }
+        }
+      } catch (err) {
+        console.warn(`Error reading param ${p.id}:`, err);
+      }
     }
   }
 
