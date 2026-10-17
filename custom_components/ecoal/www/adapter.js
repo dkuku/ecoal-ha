@@ -218,6 +218,27 @@ export class EcoalClient {
   }
 
   async getStatus() {
+    // If connected via Home Assistant proxy, try fast JSON status first
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/status`, {
+          headers: { Accept: "application/json" },
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && data.boiler_temp !== undefined) {
+            return {
+              ...data,
+              feeder_runtime_min: data.feeder_runtime || 0,
+              feeder_runtime_sec: Math.round((data.feeder_runtime || 0) * 60),
+            };
+          }
+        }
+      } catch (err) {
+        console.warn("Fast status endpoint failed, falling back to raw binary frame:", err);
+      }
+    }
+
     const cmd = buildStatusCmd();
     const raw = await this.adapter.sendHexCmd(cmd);
     return decodeStatusFrame(raw);

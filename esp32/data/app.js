@@ -107,7 +107,11 @@ class EcoalApp {
       this.updateConnPill(true, `Bezpośredni: ${customHost}`);
     } else {
       // Auto-detect: if running inside HA panel (/ecoal_ui or HA host)
-      if (window.location.pathname.includes("/ecoal_ui") || window.location.port === "8123") {
+      if (
+        window.location.pathname.includes("/ecoal") ||
+        window.location.port === "8123" ||
+        window.location.pathname.includes("/api/ecoal")
+      ) {
         this.client.setAdapter(new HttpTransportAdapter("/api/ecoal"));
         this.updateConnPill(true, "Home Assistant Proxy");
       } else {
@@ -281,17 +285,27 @@ class EcoalApp {
     // 4. Fuel Hopper
     const fuelPct = s.fuel_load_pct !== undefined ? s.fuel_load_pct : 0;
     this.setText("fuelPctText", `${fuelPct}%`);
-    const fuelKg = Math.round((this.hopperCapacity * fuelPct) / 100);
+    const fuelKg = (s.fuel_remaining_kg !== undefined && s.fuel_remaining_kg !== null)
+      ? s.fuel_remaining_kg
+      : Math.round((this.hopperCapacity * fuelPct) / 100);
     this.setText("fuelKgText", `ok. ${fuelKg} kg`);
     const fillBar = document.getElementById("fuelBarFill");
     if (fillBar) {
       fillBar.style.width = `${fuelPct}%`;
       fillBar.classList.toggle("low", fuelPct <= 15);
     }
-    const mins = s.feeder_runtime_min || 0;
+    const mins = s.feeder_runtime_min !== undefined ? s.feeder_runtime_min : (s.feeder_runtime !== undefined ? s.feeder_runtime : 0);
     const hours = Math.floor(mins / 60);
     const remMins = Math.round(mins % 60);
     this.setText("feederRuntimeText", `${hours}h ${remMins}m`);
+
+    // Feeder combustion mode select sync
+    if (s.feeder_mode !== undefined && s.feeder_mode !== null) {
+      const modeSelect = document.getElementById("feederModeSelect");
+      if (modeSelect && modeSelect.value !== String(s.feeder_mode)) {
+        modeSelect.value = String(s.feeder_mode);
+      }
+    }
 
     // 5. Heating State / Feeder Mode
     const statePill = document.getElementById("heatingStatePill");
@@ -576,9 +590,15 @@ class EcoalApp {
   }
 }
 
-// Instantiate and initialize on DOM ready
-document.addEventListener("DOMContentLoaded", () => {
+// Instantiate and initialize immediately or on DOM ready
+function startApp() {
   const app = new EcoalApp();
   window.ecoalApp = app;
   app.init();
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startApp);
+} else {
+  startApp();
+}
