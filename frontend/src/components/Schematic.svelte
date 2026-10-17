@@ -95,21 +95,21 @@
         fill="none"
         class:pipe-flow={mixerPump}
       />
-      <!-- Return Flow from Radiators -->
+      <!-- Return Flow from Radiators (flows from radiators back into boiler) -->
       <path
         d="M 720 310 L 720 380 L 340 380 L 340 330 L 230 330"
         stroke="#93c5fd"
         stroke-width="3"
         fill="none"
-        class:pipe-flow-reverse={chPump || mixerPump}
+        class:pipe-flow={chPump || mixerPump}
       />
-      <!-- Return Flow from CWU -->
+      <!-- Return Flow from CWU (flows from CWU down into return) -->
       <path
         d="M 520 360 L 520 380"
         stroke="#93c5fd"
         stroke-width="3"
         fill="none"
-        class:pipe-flow-reverse={dhwPump}
+        class:pipe-flow={dhwPump}
       />
 
       <!-- ============================================== -->
