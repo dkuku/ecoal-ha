@@ -91,12 +91,40 @@
     isDragging = false;
   }
 
+  let scheduleMeta = $derived.by(() => {
+    if (selectedScheduleId === 83) {
+      return {
+        activeLabel: 'Auto-Lato Aktywne (tylko CWU)',
+        inactiveLabel: 'Auto-Lato Zablokowane (pełne CO)',
+        btnActive: 'Wszystko aktywne',
+        btnInactive: 'Wszystko zablokowane',
+        hint: 'Harmonogram Auto-Lato (#83) ustala 48 slotów półgodzinnych (co 30 min) dla każdego dnia tygodnia. Pomarańczowy = Auto-Lato aktywne (wyłączenie CO przy ciepłej pogodzie). Ciemny = normalne grzanie CO.',
+      };
+    }
+    if (selectedScheduleId === 28) {
+      return {
+        activeLabel: 'Cyrkulacja Włączona',
+        inactiveLabel: 'Cyrkulacja Wyłączona',
+        btnActive: 'Wszystko włączona',
+        btnInactive: 'Wszystko wyłączona',
+        hint: 'Harmonogram cyrkulacji CWU (#28) ustala 48 slotów półgodzinnych (co 30 min). Pomarańczowy = praca pompy cyrkulacyjnej CWU. Ciemny = postój pompy cyrkulacyjnej.',
+      };
+    }
+    return {
+      activeLabel: 'Temperatura komfortowa / standardowa',
+      inactiveLabel: 'Temperatura obniżona',
+      btnActive: 'Wszystko komfort',
+      btnInactive: 'Wszystko obniżona',
+      hint: 'Harmonogram tygodniowy zawiera 48 slotów półgodzinnych na dobę (co 30 minut). Pomarańczowy = temperatura zadana, ciemny = obniżenie nocne/ekonomiczne.',
+    };
+  });
+
   function setAllSlots(bit) {
     days = Array(7).fill(bit.repeat(48));
     showToast(
       bit === '1'
-        ? 'Ustawiono wszystkie sloty na temperaturę komfortową'
-        : 'Ustawiono wszystkie sloty na temperaturę obniżoną',
+        ? `Ustawiono: ${scheduleMeta.activeLabel}`
+        : `Ustawiono: ${scheduleMeta.inactiveLabel}`,
       'info'
     );
   }
@@ -127,8 +155,8 @@
   function getSlotTitle(dayIdx, slotIdx, isComfort) {
     const hour = Math.floor(slotIdx / 2).toString().padStart(2, '0');
     const min = slotIdx % 2 === 0 ? '00' : '30';
-    const stateName = isComfort ? 'Temperatura standardowa' : 'Obniżona';
-    return `${DAY_NAMES[dayIdx]} ${hour}:${min} - ${stateName}`;
+    const stateName = isComfort ? scheduleMeta.activeLabel : scheduleMeta.inactiveLabel;
+    return `${DAY_NAMES[dayIdx]} ${hour}:${min} — ${stateName}`;
   }
 </script>
 
@@ -152,13 +180,17 @@
     </div>
 
     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      <button class="btn-save-param" onclick={() => setAllSlots('1')}>Wszystko komfort</button>
-      <button class="btn-save-param" onclick={() => setAllSlots('0')}>Wszystko obniżona</button>
+      <button class="btn-save-param" onclick={() => setAllSlots('1')}>{scheduleMeta.btnActive}</button>
+      <button class="btn-save-param" onclick={() => setAllSlots('0')}>{scheduleMeta.btnInactive}</button>
       <button class="btn-save-param" onclick={copySundayToAll}>Kopiuj Niedzielę</button>
       <button class="btn-primary" onclick={saveSchedule} disabled={isSaving || isLoading}>
         {isSaving ? 'Zapisywanie...' : '💾 Zapisz harmonogram'}
       </button>
     </div>
+  </div>
+
+  <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; padding: 0.6rem 0.9rem; background: rgba(30, 41, 59, 0.5); border-radius: var(--radius-sm); border-left: 3px solid var(--accent-flame);">
+    💡 {scheduleMeta.hint}
   </div>
 
   <div class="schedule-grid">
