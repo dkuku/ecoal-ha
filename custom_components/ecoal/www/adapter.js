@@ -206,6 +206,75 @@ export class MockTransportAdapter extends BaseTransportAdapter {
 }
 
 /**
+ * Web Serial API Transport: Connects directly to USB-RS232 adapter in browser.
+ */
+export class SerialTransportAdapter extends BaseTransportAdapter {
+  constructor(baudRate = 19200) {
+    super();
+    this.name = "serial";
+    this.baudRate = baudRate;
+    this.port = null;
+    this.reader = null;
+    this.writer = null;
+  }
+
+  async connect() {
+    if (typeof navigator === "undefined" || !navigator.serial) {
+      throw new Error("Web Serial API nie jest wspierane w tym środowisku.");
+    }
+    if (!this.port) {
+      this.port = await navigator.serial.requestPort();
+      await this.port.open({ baudRate: this.baudRate, dataBits: 8, stopBits: 1, parity: "none" });
+      this.writer = this.port.writable.getWriter();
+      this.reader = this.port.readable.getReader();
+    }
+  }
+
+  async sendHexCmd(hexCmd) {
+    await this.connect();
+    const bytes = new Uint8Array(hexCmd.length / 2);
+    for (let i = 0; i < hexCmd.length; i += 2) {
+      bytes[i / 2] = parseInt(hexCmd.substr(i, 2), 16);
+    }
+    await this.writer.write(bytes);
+
+    const received = [];
+    const timeout = Date.now() + 2000;
+    while (Date.now() < timeout) {
+      const { value, done } = await Promise.race([
+        this.reader.read(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 500)),
+      ]).catch(() => ({ value: null, done: false }));
+
+      if (value) {
+        for (const b of value) received.push(b);
+        if (received.length >= 4 && received[received.length - 1] === 0x03) {
+          break;
+        }
+      }
+      if (done) break;
+    }
+    return received;
+  }
+
+  async disconnect() {
+    if (this.reader) {
+      await this.reader.cancel();
+      this.reader.releaseLock();
+      this.reader = null;
+    }
+    if (this.writer) {
+      this.writer.releaseLock();
+      this.writer = null;
+    }
+    if (this.port) {
+      await this.port.close();
+      this.port = null;
+    }
+  }
+}
+
+/**
  * High-level Ecoal Client wrapping any transport adapter.
  */
 export class EcoalClient {
