@@ -127,6 +127,14 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self.data is not None:
                 self.data["exhaust_temp_regulator"] = on
                 self.async_update_listeners()
+    async def async_set_mixer_mode(self, mode: int) -> bool:
+        """Set mixer circuit mode (0=disabled, 1=mixer/CO, 2=floor)."""
+        success = await self.client.set_mixer_mode(mode)
+        if success:
+            if self.data is not None:
+                self.data["mixer_circuit"] = mode
+                self.async_update_listeners()
+            await self.async_request_refresh()
         return success
 
     async def _async_update_data(self) -> dict[str, Any]:

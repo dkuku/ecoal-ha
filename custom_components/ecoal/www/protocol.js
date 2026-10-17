@@ -104,8 +104,15 @@ export function buildReadParamCmd(paramId) {
 }
 
 export function buildWriteParamCmd(paramId, value) {
-  if (value < 0) value += 65536;
-  const data = [value & 0xff, (value >> 8) & 0xff];
+  let data;
+  if (Array.isArray(value)) {
+    data = value;
+  } else {
+    let num = typeof value === "number" ? value : parseInt(value, 10);
+    if (isNaN(num)) num = 0;
+    if (num < 0) num += 65536;
+    data = [num & 0xff, (num >> 8) & 0xff];
+  }
   return buildFrame(0x02, 0x00, paramId, data);
 }
 
@@ -233,8 +240,9 @@ export function decodeStatusFrame(tab) {
   // Temperatures (bytes 8..23 in data)
   for (let i = 0; i < SENSOR_NAMES.length; i++) {
     const sName = SENSOR_NAMES[i];
+    const isConnected = d[i] === 0;
     const idx = 8 + i * 2;
-    result[sName] = decodeTemp(d[idx], d[idx + 1]);
+    result[sName] = isConnected ? decodeTemp(d[idx], d[idx + 1]) : null;
   }
 
   // Outputs bitmask (byte 24 in data, 32 in frame)

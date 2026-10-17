@@ -63,7 +63,7 @@ OUTPUT_BINARY_SENSOR_DESCRIPTIONS: tuple[EcoalBinarySensorDescription, ...] = (
         translation_key="z1_pump",
         icon="mdi:pump",
         entity_category=EntityCategory.DIAGNOSTIC,
-        entity_registry_enabled_default=False,
+        entity_registry_enabled_default=True,
     ),
     EcoalBinarySensorDescription(
         key="valve_3d",

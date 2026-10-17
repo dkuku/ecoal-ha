@@ -150,14 +150,32 @@ void handleComCommand() {
   server.send(200, "text/plain", out);
 }
 
+// Get MIME type from file extension
+String getContentType(String path) {
+  if (path.endsWith(".html") || path.endsWith(".htm")) return "text/html";
+  else if (path.endsWith(".css")) return "text/css";
+  else if (path.endsWith(".js") || path.endsWith(".mjs")) return "application/javascript";
+  else if (path.endsWith(".json")) return "application/json";
+  else if (path.endsWith(".svg")) return "image/svg+xml";
+  else if (path.endsWith(".png")) return "image/png";
+  else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+  else if (path.endsWith(".ico")) return "image/x-icon";
+  return "text/plain";
+}
+
 // Serve static files from LittleFS
-bool handleStaticFile(String path, const char* contentType) {
+bool handleStaticFile(String path, const char* contentType = NULL) {
   if (path == "/") path = "/index.html";
+
+  // Strip query string if present (e.g. ?v=1.2.7)
+  int qIdx = path.indexOf('?');
+  if (qIdx != -1) path = path.substring(0, qIdx);
 
   if (LittleFS.exists(path)) {
     File file = LittleFS.open(path, "r");
     server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.streamFile(file, contentType);
+    String cType = (contentType != NULL) ? String(contentType) : getContentType(path);
+    server.streamFile(file, cType.c_str());
     file.close();
     return true;
   }
@@ -209,6 +227,8 @@ void setup() {
   // Web Server Routes
   server.on("/", HTTP_GET, handleComCommand);
   server.on("/index.html", HTTP_GET, []() { handleStaticFile("/index.html", "text/html"); });
+  server.on("/bundle.js", HTTP_GET, []() { handleStaticFile("/bundle.js", "application/javascript"); });
+  server.on("/bundle.css", HTTP_GET, []() { handleStaticFile("/bundle.css", "text/css"); });
   server.on("/style.css", HTTP_GET, []() { handleStaticFile("/style.css", "text/css"); });
   server.on("/app.js", HTTP_GET, []() { handleStaticFile("/app.js", "application/javascript"); });
   server.on("/protocol.js", HTTP_GET, []() { handleStaticFile("/protocol.js", "application/javascript"); });
@@ -216,7 +236,7 @@ void setup() {
   server.on("/params.js", HTTP_GET, []() { handleStaticFile("/params.js", "application/javascript"); });
 
   server.onNotFound([]() {
-    if (!handleStaticFile(server.uri(), "text/plain")) {
+    if (!handleStaticFile(server.uri())) {
       server.send(404, "text/plain", "File Not Found");
     }
   });

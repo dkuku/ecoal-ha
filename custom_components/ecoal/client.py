@@ -321,7 +321,10 @@ class EcoalClient:
         # Temperatures (bytes 16-31): 8x2 bytes, signed LE / 10
         for i, name in enumerate(SENSOR_NAMES):
             idx = 16 + i * 2
-            result[name] = _decode_temp(d[idx], d[idx + 1])
+            if d[8 + i] == 0:
+                result[name] = _decode_temp(d[idx], d[idx + 1])
+            else:
+                result[name] = None
 
         # Outputs bitmask (byte 32)
         out_byte = d[32]
@@ -489,10 +492,15 @@ class EcoalClient:
         result = await self._send(cmd)
         return result is not None
 
-    async def set_mixer_activation(self, on: bool) -> bool:
-        cmd = _build_value_cmd(PARAM_MIESZ_AKTYWACJA, 1 if on else 0)
+    async def set_mixer_mode(self, mode: int) -> bool:
+        """Set mixer circuit mode (PARAM 19: 0=disabled, 1=mixer/CO, 2=floor)."""
+        mode = max(0, min(2, int(mode)))
+        cmd = _build_value_cmd(PARAM_MIESZ_AKTYWACJA, mode)
         result = await self._send(cmd)
         return result is not None
+
+    async def set_mixer_activation(self, on: bool) -> bool:
+        return await self.set_mixer_mode(1 if on else 0)
 
     async def refill_hopper(self, kg: int = 150) -> bool:
         """Reset feeder runtime counter and record new coal refill (100% hopper)."""

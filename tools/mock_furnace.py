@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import logging
-import sys
 import time
 from urllib.parse import parse_qs, urlparse
 

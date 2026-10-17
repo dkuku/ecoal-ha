@@ -40,7 +40,6 @@ class EcoalHeatingClimate(CoordinatorEntity[EcoalCoordinator], ClimateEntity):
     """Climate entity for the central heating (CO) circuit."""
 
     _attr_has_entity_name = True
-    _attr_name = "Heating"
     _attr_translation_key = "heating"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
@@ -106,7 +105,6 @@ class EcoalCWUClimate(CoordinatorEntity[EcoalCoordinator], ClimateEntity):
     """Climate entity for domestic hot water (CWU) circuit."""
 
     _attr_has_entity_name = True
-    _attr_name = "Hot Water"
     _attr_translation_key = "hot_water"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
@@ -176,7 +174,6 @@ class EcoalFloorClimate(CoordinatorEntity[EcoalCoordinator], ClimateEntity):
     """Climate entity for the floor heating circuit (mixer/underfloor)."""
 
     _attr_has_entity_name = True
-    _attr_name = "Floor Heating"
     _attr_translation_key = "floor_heating"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]

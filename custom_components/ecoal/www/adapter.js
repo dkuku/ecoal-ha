@@ -86,8 +86,10 @@ export class MockTransportAdapter extends BaseTransportAdapter {
     this.fuelLoadPct = 99;
     this.feederMode = 1; // 1 = retort_group
     this.feederRuntimeSec = 1200;
+    this.mixerCircuit = 2; // 0=disabled, 1=mixer/CO, 2=floor
     this.params = {
       17: [50, 35, 65, 50],
+      19: [2, 0, 2, 2],
       38: [45, 42, 60, 45],
       39: [65, 65, 80, 80],
       40: [55, 45, 80, 55],
@@ -129,6 +131,7 @@ export class MockTransportAdapter extends BaseTransportAdapter {
       data[29] = this.targetBoilerTemp;
       data[30] = this.targetDhwTemp;
       data[31] = 38; // 38% blower
+      data[34] = this.mixerCircuit ?? 2;
       data[35] = 2; // Auth = 2
       data[67] = this.fuelLoadPct;
 
@@ -178,6 +181,8 @@ export class MockTransportAdapter extends BaseTransportAdapter {
           this.dhwTemp = val;
         } else if (cmd3 === 119) {
           this.feederMode = val;
+        } else if (cmd3 === 19) {
+          this.mixerCircuit = val;
         }
         if (!this.params[cmd3]) {
           this.params[cmd3] = [val, 0, 100, val];
@@ -322,7 +327,8 @@ export class EcoalClient {
   }
 
   async writeParam(paramId, value) {
-    const cmd = buildWriteParamCmd(paramId, Math.round(value));
+    const valToSend = Array.isArray(value) ? value : (typeof value === "number" ? Math.round(value) : value);
+    const cmd = buildWriteParamCmd(paramId, valToSend);
     const raw = await this.adapter.sendHexCmd(cmd);
     return raw && (raw[2] === 6 || raw[2] === 21);
   }
@@ -341,6 +347,22 @@ export class EcoalClient {
 
   async setFeederMode(mode) {
     const cmd = buildWriteParamCmd(119, parseInt(mode, 10));
+    const raw = await this.adapter.sendHexCmd(cmd);
+    return raw && (raw[2] === 6 || raw[2] === 21);
+  }
+
+  async setMixerMode(mode) {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "set_mixer_mode", value: parseInt(mode, 10) }),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    const cmd = buildWriteParamCmd(19, parseInt(mode, 10));
     const raw = await this.adapter.sendHexCmd(cmd);
     return raw && (raw[2] === 6 || raw[2] === 21);
   }

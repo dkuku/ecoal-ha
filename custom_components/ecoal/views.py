@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any
 
 from aiohttp import web
 from homeassistant.components import frontend
@@ -16,10 +15,15 @@ from .coordinator import EcoalCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-def _get_coordinator(hass: HomeAssistant) -> EcoalCoordinator | None:
+VIEWS_REGISTERED = "ecoal_views_registered"
+
+
+def _get_coordinator(hass: HomeAssistant, entry_id: str | None = None) -> EcoalCoordinator | None:
     coordinators = hass.data.get(DOMAIN, {})
     if not coordinators:
         return None
+    if entry_id and entry_id in coordinators:
+        return coordinators[entry_id]
     return next(iter(coordinators.values()), None)
 
 
@@ -29,7 +33,7 @@ class EcoalComProxyView(HomeAssistantView):
     url = "/api/ecoal/com"
     name = "api:ecoal:com"
     requires_auth = False
-    cors_allowed = True
+    cors_allowed = False
 
     async def get(self, request: web.Request) -> web.Response:
         return await self._handle(request)
@@ -49,7 +53,8 @@ class EcoalComProxyView(HomeAssistantView):
         if not com:
             return web.Response(text="Missing 'com' parameter", status=400)
 
-        coordinator = _get_coordinator(request.app["hass"])
+        entry_id = request.query.get("entry_id")
+        coordinator = _get_coordinator(request.app["hass"], entry_id)
         if coordinator is None or coordinator.client is None:
             return web.Response(text="eCoal coordinator not available", status=503)
 
@@ -66,10 +71,11 @@ class EcoalStatusView(HomeAssistantView):
     url = "/api/ecoal/status"
     name = "api:ecoal:status"
     requires_auth = False
-    cors_allowed = True
+    cors_allowed = False
 
     async def get(self, request: web.Request) -> web.Response:
-        coordinator = _get_coordinator(request.app["hass"])
+        entry_id = request.query.get("entry_id")
+        coordinator = _get_coordinator(request.app["hass"], entry_id)
         if coordinator is None or coordinator.data is None:
             return web.Response(text="eCoal status not available", status=503)
 
@@ -82,10 +88,11 @@ class EcoalControlView(HomeAssistantView):
     url = "/api/ecoal/control"
     name = "api:ecoal:control"
     requires_auth = False
-    cors_allowed = True
+    cors_allowed = False
 
     async def post(self, request: web.Request) -> web.Response:
-        coordinator = _get_coordinator(request.app["hass"])
+        entry_id = request.query.get("entry_id")
+        coordinator = _get_coordinator(request.app["hass"], entry_id)
         if coordinator is None:
             return self.json({"error": "eCoal coordinator not available"}, status_code=503)
 
@@ -97,37 +104,62 @@ class EcoalControlView(HomeAssistantView):
         action = body.get("action")
         value = body.get("value")
 
-        if action == "set_boiler_temp":
-            if value is None:
-                return self.json({"error": "Missing value"}, status_code=400)
-            success = await coordinator.client.set_target_boiler_temp(int(value))
-        elif action == "set_dhw_temp":
-            if value is None:
-                return self.json({"error": "Missing value"}, status_code=400)
-            success = await coordinator.client.set_target_dhw_temp(int(value))
-        elif action == "refill_hopper":
-            kg = body.get("kg", coordinator.hopper_capacity_kg)
-            success = await coordinator.async_refill_hopper(int(kg))
-        elif action == "set_feeder_mode":
-            if value is None:
-                return self.json({"error": "Missing value"}, status_code=400)
-            success = await coordinator.async_set_feeder_mode(int(value))
-        elif action == "set_dhw_priority":
-            if value is None:
-                return self.json({"error": "Missing value"}, status_code=400)
-            success = await coordinator.async_set_dhw_priority(bool(value))
-        elif action == "set_blower_correction":
-            if value is None:
-                return self.json({"error": "Missing value"}, status_code=400)
-            success = await coordinator.async_set_blower_correction(int(value))
-        elif action == "set_exhaust_temp_regulator":
-            if value is None:
-                return self.json({"error": "Missing value"}, status_code=400)
-            success = await coordinator.async_set_exhaust_temp_regulator(bool(value))
-        elif action == "ack_alarm":
-            success = await coordinator.client.ack_alarms()
-        else:
-            return self.json({"error": f"Unknown action: {action}"}, status_code=400)
+        try:
+            if action == "set_boiler_temp":
+                if value is None:
+                    return self.json({"error": "Missing value"}, status_code=400)
+                temp = int(value)
+                if not (30 <= temp <= 85):
+                    return self.json({"error": f"Boiler temperature {temp}°C out of range [30..85]"}, status_code=400)
+                success = await coordinator.client.set_target_boiler_temp(temp)
+            elif action == "set_dhw_temp":
+                if value is None:
+                    return self.json({"error": "Missing value"}, status_code=400)
+                temp = int(value)
+                if not (30 <= temp <= 70):
+                    return self.json({"error": f"DHW temperature {temp}°C out of range [30..70]"}, status_code=400)
+                success = await coordinator.client.set_target_dhw_temp(temp)
+            elif action == "refill_hopper":
+                kg_raw = body.get("kg", coordinator.hopper_capacity_kg)
+                kg = int(kg_raw)
+                if not (10 <= kg <= 1000):
+                    return self.json({"error": f"Hopper capacity {kg} kg out of range [10..1000]"}, status_code=400)
+                success = await coordinator.async_refill_hopper(kg)
+            elif action == "set_feeder_mode":
+                if value is None:
+                    return self.json({"error": "Missing value"}, status_code=400)
+                mode = int(value)
+                if mode not in (0, 1, 2, 3):
+                    return self.json({"error": f"Invalid feeder mode {mode}. Expected 0, 1, 2, or 3"}, status_code=400)
+                success = await coordinator.async_set_feeder_mode(mode)
+            elif action == "set_dhw_priority":
+                if value is None:
+                    return self.json({"error": "Missing value"}, status_code=400)
+                success = await coordinator.async_set_dhw_priority(bool(value))
+            elif action == "set_blower_correction":
+                if value is None:
+                    return self.json({"error": "Missing value"}, status_code=400)
+                corr = int(value)
+                if not (-6 <= corr <= 6):
+                    return self.json({"error": f"Blower correction {corr}% out of range [-6..6]"}, status_code=400)
+                success = await coordinator.async_set_blower_correction(corr)
+            elif action == "set_exhaust_temp_regulator":
+                if value is None:
+                    return self.json({"error": "Missing value"}, status_code=400)
+                success = await coordinator.async_set_exhaust_temp_regulator(bool(value))
+            elif action == "set_mixer_mode":
+                if value is None:
+                    return self.json({"error": "Missing value"}, status_code=400)
+                mode = int(value)
+                if mode not in (0, 1, 2):
+                    return self.json({"error": f"Invalid mixer mode {mode}. Expected 0, 1, or 2"}, status_code=400)
+                success = await coordinator.async_set_mixer_mode(mode)
+            elif action == "ack_alarm":
+                success = await coordinator.client.ack_alarms()
+            else:
+                return self.json({"error": f"Unknown action: {action}"}, status_code=400)
+        except (ValueError, TypeError) as err:
+            return self.json({"error": f"Invalid parameter format: {err}"}, status_code=400)
 
         if success:
             await coordinator.async_request_refresh()
@@ -137,6 +169,10 @@ class EcoalControlView(HomeAssistantView):
 
 async def async_setup_views(hass: HomeAssistant) -> None:
     """Register HTTP views and static directory for eCoal UI."""
+    if hass.data.get(VIEWS_REGISTERED):
+        return
+    hass.data[VIEWS_REGISTERED] = True
+
     www_dir = os.path.join(os.path.dirname(__file__), "www")
     if hasattr(hass, "http") and hass.http is not None:
         try:
@@ -172,6 +208,7 @@ async def async_setup_views(hass: HomeAssistant) -> None:
 
 async def async_unload_views(hass: HomeAssistant) -> None:
     """Unregister HA sidebar panel if no entries remain."""
+    hass.data.pop(VIEWS_REGISTERED, None)
     if hasattr(frontend, "async_remove_panel") and "frontend" in hass.config.components:
         try:
             frontend.async_remove_panel(hass, "ecoal_panel")

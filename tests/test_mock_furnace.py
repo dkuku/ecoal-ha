@@ -9,11 +9,8 @@ import aiohttp
 import pytest
 
 from custom_components.ecoal.client import (
-    CMD_STATUS,
     PARAM_CO_MIN,
     PARAM_CO_ZADANA,
-    PARAM_PODAJNIK_CZASALARM,
-    PARAM_TYP_PODAJNIKA,
     EcoalClient,
 )
 from tools.mock_furnace import EcoalMockServer

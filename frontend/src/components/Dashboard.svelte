@@ -7,6 +7,7 @@
     onStepSetpoint = () => {},
     onRefillHopper = () => {},
     onSetFeederMode = () => {},
+    onSetMixerMode = () => {},
   } = $props();
 
   let fuelPct = $derived(status?.fuel_load_pct ?? 0);
@@ -27,6 +28,11 @@
     const val = parseInt(e.target.value, 10);
     onSetFeederMode(val);
   }
+
+  function handleMixerModeChange(e) {
+    const val = parseInt(e.target.value, 10);
+    onSetMixerMode(val);
+  }
 </script>
 
 <div class="dashboard-grid">
@@ -42,10 +48,13 @@
     chPump={!!status?.ch_pump}
     dhwPump={!!status?.dhw_pump}
     mixerPump={!!status?.mixer_pump}
+    circulationPump={!!status?.z1_pump}
+    mixerCircuit={status?.mixer_circuit}
     blowerActive={!!status?.air_pump}
     blowerPower={status?.air_pump_power || 0}
     feederActive={!!status?.coal_feeder}
     feederTemp={status?.feeder_temp}
+    floorTemp={status?.floor_temp}
     fuelPct={status?.fuel_load_pct ?? 0}
     heatingState={status?.heating || 0}
   />
@@ -139,12 +148,31 @@
           <option value="3">Tryb zasypowy</option>
         </select>
       </div>
+      <div style="margin-bottom: 0.75rem;">
+        <label for="mixerModeSelect" style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">
+          Obieg mieszacza (wyjście OUT 4/6/7):
+        </label>
+        <select
+          id="mixerModeSelect"
+          class="transport-select"
+          style="width: 100%; padding: 0.45rem;"
+          value={status?.mixer_circuit != null ? String(status.mixer_circuit) : '2'}
+          onchange={handleMixerModeChange}
+        >
+          <option value="2">Ogrzewanie podłogowe (Podłogówka)</option>
+          <option value="1">Mieszacz / Zawór 3D (Ochrona powrotu)</option>
+          <option value="0">Wyłączony</option>
+        </select>
+      </div>
       <div class="actuator-row">
         <span class="actuator-tag" class:on={!!status?.air_pump}>Dmuchawa</span>
         <span class="actuator-tag" class:on={!!status?.coal_feeder}>Podajnik</span>
         <span class="actuator-tag" class:on={!!status?.ch_pump}>Pompa CO</span>
         <span class="actuator-tag" class:on={!!status?.dhw_pump}>Pompa CWU</span>
-        <span class="actuator-tag" class:on={!!status?.mixer_pump}>Mieszacz</span>
+        <span class="actuator-tag" class:on={!!status?.mixer_pump}>
+          {status?.mixer_circuit === 1 ? 'Mieszacz' : 'Podłogówka'}
+        </span>
+        <span class="actuator-tag" class:on={!!status?.z1_pump}>Cyrkulacja</span>
       </div>
     </div>
 
@@ -155,7 +183,7 @@
       </div>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; text-align: center;">
         <div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Powrót CO</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">Temperatura Powrotu</div>
           <div style="font-size: 1.4rem; font-weight: 700; color: #93c5fd;">
             {status?.return_temp != null ? status.return_temp.toFixed(1) : '--'}°C
           </div>
@@ -184,6 +212,25 @@
             {status?.indoor_temp != null ? status.indoor_temp.toFixed(1) : '--'}°C
           </div>
         </div>
+        {#if status?.floor_temp != null}
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">
+              {status?.mixer_circuit === 1 ? 'Za mieszaczem' : 'Podłogowa'}
+            </div>
+            <div style="font-size: 1.4rem; font-weight: 700; color: {status?.mixer_circuit === 1 ? '#60a5fa' : '#818cf8'};">
+              {status.floor_temp.toFixed(1)}°C
+            </div>
+          </div>
+        {:else if status?.mixer_circuit && status.mixer_circuit > 0}
+          <div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">
+              {status?.mixer_circuit === 1 ? 'Za mieszaczem' : 'Podłogowa'}
+            </div>
+            <div style="font-size: 1.05rem; font-weight: 600; color: var(--text-muted); margin-top: 0.25rem;">
+              Brak czujnika
+            </div>
+          </div>
+        {/if}
       </div>
     </div>
   </div>

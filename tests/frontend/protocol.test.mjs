@@ -73,6 +73,9 @@ test("decodeStatusFrame decodes real physical furnace frame with 100% precision"
   assert.equal(status.exhaust_temp, 95.2);
   assert.equal(status.indoor_temp, 20.9);
   assert.equal(status.outdoor_temp, 7.9);
+  assert.equal(status.floor_temp, null); // sensor disconnected in live capture!
+  assert.equal(status.connected_sensors.floor_temp, false);
+  assert.equal(status.connected_sensors.boiler_temp, true);
 
   // Outputs (0b00000101 = 5 -> Dmuchawa ON, Podajnik OFF, Pompa CO ON)
   assert.equal(status.air_pump, true);

@@ -11,9 +11,6 @@ from homeassistant.setup import async_setup_component
 
 from custom_components.ecoal.const import DOMAIN
 from custom_components.ecoal.views import (
-    EcoalComProxyView,
-    EcoalControlView,
-    EcoalStatusView,
     async_setup_views,
 )
 from tools.mock_furnace import EcoalMockServer
@@ -54,6 +51,7 @@ async def test_api_ecoal_views(hass: HomeAssistant, hass_client_no_auth, mock_fu
     mock_client.set_target_boiler_temp = AsyncMock(return_value=True)
     mock_client.set_target_dhw_temp = AsyncMock(return_value=True)
     mock_coordinator.async_refill_hopper = AsyncMock(return_value=True)
+    mock_coordinator.async_set_mixer_mode = AsyncMock(return_value=True)
     mock_coordinator.async_request_refresh = AsyncMock()
 
     hass.data.setdefault(DOMAIN, {})
@@ -90,7 +88,14 @@ async def test_api_ecoal_views(hass: HomeAssistant, hass_client_no_auth, mock_fu
     assert result == {"success": True}
     mock_coordinator.async_refill_hopper.assert_awaited_with(150)
 
-    # 5. Test error cases
+    # 5. Test POST /api/ecoal/control -> set_mixer_mode
+    resp = await client.post("/api/ecoal/control", json={"action": "set_mixer_mode", "value": 1})
+    assert resp.status == 200
+    result = await resp.json()
+    assert result == {"success": True}
+    mock_coordinator.async_set_mixer_mode.assert_awaited_with(1)
+
+    # 6. Test error cases
     resp = await client.get("/api/ecoal/com")
     assert resp.status == 400
 

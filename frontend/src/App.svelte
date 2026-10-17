@@ -154,6 +154,21 @@
     }
   }
 
+  async function handleSetMixerMode(mode) {
+    try {
+      const ok = await client.setMixerMode(mode);
+      if (ok) {
+        if (status) status.mixer_circuit = mode;
+        const labels = { 0: 'Wyłączony', 1: 'Mieszacz / Zawór 3D', 2: 'Ogrzewanie podłogowe' };
+        showToast(`Zmieniono tryb obiegu mieszacza: ${labels[mode] || mode}`, 'success');
+      } else {
+        showToast('Błąd zapisu trybu mieszacza', 'error');
+      }
+    } catch (err) {
+      showToast(`Wyjątek: ${err.message}`, 'error');
+    }
+  }
+
   async function handleAckAlarm() {
     try {
       const ok = await client.ackAlarms();
@@ -254,6 +269,7 @@
       onStepSetpoint={handleStepSetpoint}
       onRefillHopper={handleRefillHopper}
       onSetFeederMode={handleSetFeederMode}
+      onSetMixerMode={handleSetMixerMode}
     />
   {:else if activeTab === 'combustion'}
     <ParamsTab

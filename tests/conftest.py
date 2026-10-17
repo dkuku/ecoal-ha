@@ -15,3 +15,9 @@ def socket_enabled():
     """Fixture required by pytest-homeassistant-custom-component HTTP test client."""
     pytest_socket.enable_socket()
     yield
+
+
+@pytest.fixture(autouse=True)
+def auto_enable_custom_integrations(enable_custom_integrations):
+    """Enable loading of custom components."""
+    yield

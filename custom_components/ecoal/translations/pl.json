@@ -20,7 +20,7 @@
       "co_lowered_active": { "name": "Obniżenie CO" },
       "cwu_lowered_active": { "name": "Obniżenie CWU" },
       "is_summer": { "name": "Tryb letni" },
-      "z1_pump": { "name": "Pompa Z1" },
+      "z1_pump": { "name": "Pompa cyrkulacyjna CWU" },
       "valve_3d": { "name": "Zawór trójdrogowy" },
       "cwu_mixer": { "name": "Zawór mieszający CWU" }
     },
@@ -47,6 +47,14 @@
           "retort_group": "Retortowy - spalanie grupowe",
           "retort_ecoal": "Retortowy - algorytm eCoal",
           "batch": "Zasypowy"
+        }
+      },
+      "mixer_circuit_mode": {
+        "name": "Funkcja obiegu mieszacza",
+        "state": {
+          "disabled": "Wyłączony",
+          "mixer": "Mieszacz / Ochrona powrotu",
+          "floor": "Ogrzewanie podłogowe"
         }
       }
     },

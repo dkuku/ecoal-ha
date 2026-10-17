@@ -717,6 +717,189 @@ body {
   color: var(--text-muted);
 }
 
+/* Parameters Table View & Hints */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.params-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.params-table th {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.param-row {
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.15s ease;
+}
+
+.param-row:last-child {
+  border-bottom: none;
+}
+
+.param-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.param-id-cell {
+  padding: 0.75rem 1rem;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  vertical-align: top;
+}
+
+.param-info-cell {
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+}
+
+.param-name-title {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.param-hint-text {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #94a3b8;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent-cold);
+  margin-top: 0.35rem;
+  max-width: 680px;
+}
+
+.hint-toggle-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-sm);
+  opacity: 0.5;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.hint-toggle-btn:hover,
+.hint-toggle-btn.active {
+  opacity: 1;
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.param-limits-cell {
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.param-value-cell {
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+}
+
+.param-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.param-table-input {
+  width: 95px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.param-table-input:focus {
+  outline: none;
+  border-color: var(--accent-flame);
+}
+
+.param-table-unit {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  min-width: 25px;
+}
+
+.param-action-cell {
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.btn-save-table {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-save-table:hover {
+  background: var(--accent-flame);
+  border-color: var(--accent-flame);
+  color: white;
+}
+
+/* View Mode Switcher */
+.view-switch {
+  display: flex;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  border: 1px solid var(--border-color);
+}
+
+.view-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.view-btn.active {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
 /* Weekly Schedules Editor */
 .schedule-container {
   display: flex;

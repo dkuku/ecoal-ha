@@ -20,7 +20,7 @@
       "co_lowered_active": { "name": "CO lowered" },
       "cwu_lowered_active": { "name": "CWU lowered" },
       "is_summer": { "name": "Summer mode" },
-      "z1_pump": { "name": "Z1 pump" },
+      "z1_pump": { "name": "DHW circulation pump" },
       "valve_3d": { "name": "3-way valve" },
       "cwu_mixer": { "name": "CWU mixer valve" }
     },
@@ -47,6 +47,14 @@
           "retort_group": "Retort - Group combustion",
           "retort_ecoal": "Retort - eCoal algorithm",
           "batch": "Batch furnace"
+        }
+      },
+      "mixer_circuit_mode": {
+        "name": "Mixer circuit function",
+        "state": {
+          "disabled": "Disabled",
+          "mixer": "Mixer / Return protection",
+          "floor": "Underfloor heating"
         }
       }
     },
