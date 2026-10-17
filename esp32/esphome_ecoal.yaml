@@ -1,0 +1,48 @@
+# ESPHome Configuration for eCoal UART Bridge
+# Connects ESP32-C3 / S3 to eCoal furnace and exposes a network socket for Home Assistant
+
+substitutions:
+  name: "ecoal-bridge"
+  friendly_name: "eCoal Furnace Bridge"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+  baud_rate: 0  # Disable logging over USB serial to free pins, or use USB-CDC
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "eCoal-Fallback-AP"
+    password: "ecoalpassword"
+
+captive_portal:
+
+ota:
+  - platform: esphome
+
+api:
+
+# Hardware UART connection to eCoal boiler (19200 8N1)
+uart:
+  id: uart_furnace
+  tx_pin: GPIO21
+  rx_pin: GPIO20
+  baud_rate: 19200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+
+# Stream Server: Exposes UART over TCP port 8888
+# Allows Home Assistant or python client to connect directly: socket://192.168.x.x:8888
+stream_server:
+  uart_id: uart_furnace
+  port: 8888

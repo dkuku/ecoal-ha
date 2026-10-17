@@ -281,7 +281,8 @@ class EcoalClient:
         self._session = session
         self._url = f"http://{host}"
 
-    async def _send(self, cmd: str) -> list[int] | None:
+    async def send_raw_command(self, cmd: str) -> str | None:
+        """Send raw hex command frame to furnace and return response text."""
         url = f"{self._url}/?com={cmd}"
         try:
             async with self._session.get(
@@ -289,15 +290,20 @@ class EcoalClient:
             ) as resp:
                 if resp.status != 200:
                     return None
-                body = await resp.text()
-                start = body.find("[")
-                end = body.find("]")
-                if start == -1 or end == -1:
-                    return None
-                return [int(v.strip()) for v in body[start + 1 : end].split(",")]
+                return await resp.text()
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             _LOGGER.debug("Error communicating with furnace at %s: %s", self.host, err)
             return None
+
+    async def _send(self, cmd: str) -> list[int] | None:
+        body = await self.send_raw_command(cmd)
+        if body is None:
+            return None
+        start = body.find("[")
+        end = body.find("]")
+        if start == -1 or end == -1:
+            return None
+        return [int(v.strip()) for v in body[start + 1 : end].split(",")]
 
     async def get_status(self) -> dict[str, Any] | None:
         """Read full furnace status (CMD 0x06). All fields decoded per JS CStatus."""

@@ -126,16 +126,60 @@ Home Assistant
 
 Integracja odpytuje sterownik co 30 sekund.
 
+## Nowoczesny Panel WWW (SPA) & Schemat Hydrauliczny
+
+W wersji **1.2.0** integracja zawiera nowoczesny, responsywny panel webowy (Single Page Application) dostępny bezpośrednio w **pasku bocznym Home Assistant** (ikona ognia 🔥 `mdi:fire`):
+
+* **Wektorowy, animowany schemat hydrauliczny (SVG):**
+  * Animowany płomień w kotle reagujący na moc dmuchawy i stan grzania.
+  * Animowane przepływy wody w rurach CO (zasilanie / powrót) i CWU.
+  * Obracające się wirniki pomp obiegowych (Pompa CO, Pompa CWU, Pompa Mieszająca).
+  * Bieżące temperatury nałożone bezpośrednio na instalację.
+* **Szybkie sterowanie nastawami:** Przyciski `+` / `-` dla zadanej kotła i bojlera, reset zasypu 100%, zmiana trybu spalania.
+* **Pełne pokrycie 122 parametrów sterownika:** Podział na grupy (*Spalanie*, *Zaawansowane*, *Kalibracja*, *Harmonogramy*).
+* **Likwidacja błędu producenta z 2011 r.:** Naprawiono problem *"Nie wszystkie parametry odczytano"*, wynikający ze statusu 21 (NAK) zwracanego przez firmware dla rejestrów $\ge 96$.
+* **Edytor 7 programatorów tygodniowych:** Interaktywna siatka 48 slotów 30-minutowych dla każdego dnia tygodnia.
+
+---
+
+## Wirtualny Symulator Kotła (`tools/mock_furnace.py`)
+
+Aby umożliwić bezpieczne testowanie automatyzacji i interfejsu przed sezonem zimowym bez ingerencji w pracujący kocioł, projekt zawiera pełny symulator eCoal w Pythonie:
+
+```bash
+# Uruchomienie lokalnego symulatora na porcie 8080:
+python3 tools/mock_furnace.py --port 8080
+
+# Uruchomienie z symulacją anomalii firmware NAK (status 21):
+python3 tools/mock_furnace.py --port 8080 --quirk
+```
+
+Symulator emuluje wszystkie 122 rejestry, generuje autentyczne 86-bajtowe ramki statusu z pływającymi temperaturami oraz ubywanie węgla w zasobniku podczas pracy podajnika.
+
+---
+
+## Samodzielny Mostek ESP32 (`esp32/`)
+
+Interfejs WWW został zaprojektowany w architekturze **Adapter Pattern** z zerową liczbą zależności (czysty HTML5/CSS/JS ES modules):
+* Ten sam kod WWW działa w Home Assistant, na komputerze przez **Web Serial API** lub bezpośrednio z mikrokontrolera **ESP32-C3 / ESP32-S3**.
+* Mikrokontroler serwuje interfejs z pamięci **LittleFS** i komunikuje się z płytą główną kotła przez sprzętowy port UART / RS-232 (19200 8N1).
+* Szczegółowy schemat połączeń elektrycznych (konwerter MAX3232) oraz gotowy szkic Arduino / ESPHome znajdują się w katalogu [esp32/](esp32/README.md).
+
+---
+
 ## Dokumentacja protokołu
 
-Szczegółowa dokumentacja protokołu eCoal znajduje się w [docs/protocol.md](docs/protocol.md).
+Szczegółowa dokumentacja protokołu eCoal znajduje się w [docs/protocol.md](docs/protocol.md), a plan wdrożenia nowego interfejsu w [docs/modern_ui_plan.md](docs/modern_ui_plan.md).
 
-## Istniejące biblioteki
+## Testy Automatyczne
 
-- **ecoaliface** (v0.7.0) - obsługuje firmware v0.1 (Bruli) i v0.3 (Ecoal), **nie obsługuje** v0.2
-- **HA ecoal_boiler** - oficjalna integracja HA, korzysta z ecoaliface
+```bash
+# Uruchomienie testów Pythona (Mock, Views, Coordinator):
+pytest -v
 
-Ta integracja obsługuje firmware v0.2, który nie jest rozpoznawany przez powyższe biblioteki.
+# Uruchomienie testów JavaScript (Protokół, CRC8, 122/122 Coverage, E2E HTTP):
+node --test tests/frontend/*.test.mjs
+```
 
 ## Licencja
 
