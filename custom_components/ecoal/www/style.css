@@ -330,21 +330,22 @@ body {
   to { stroke-dashoffset: 36; }
 }
 
-.pump-rotor {
-  transform-origin: center;
+/* Pumps: Active pump glow */
+.pump-group {
+  transition: filter 0.3s ease;
 }
 
-.pump-active .pump-rotor {
-  animation: rotatePump 1.2s linear infinite;
+.pump-group.pump-active {
+  filter: drop-shadow(0 0 5px currentColor);
 }
 
-@keyframes rotatePump {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.pump-impeller {
+  transform-origin: 0 0;
 }
 
 .flame-anim {
-  transform-origin: bottom center;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
   animation: flameFlicker 1.8s infinite ease-in-out;
 }
 

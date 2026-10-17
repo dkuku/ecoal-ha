@@ -116,16 +116,42 @@
       </text>
 
       <!-- CWU Pump -->
-      <g class="pump-rotor" class:pump-active={dhwPump} transform="translate(435, 180)">
+      <g class="pump-group" class:pump-active={dhwPump} transform="translate(435, 180)">
         <circle cx="0" cy="0" r="14" fill="#0f172a" stroke="#0284c7" stroke-width="2" />
-        <path class="pump-rotor" d="M -8 -8 L 8 8 M -8 8 L 8 -8" stroke="#0284c7" stroke-width="2.5" />
+        <g class="pump-impeller">
+          {#if dhwPump}
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              from="0 0 0"
+              to="360 0 0"
+              dur="1.2s"
+              repeatCount="indefinite"
+            />
+          {/if}
+          <circle cx="0" cy="0" r="2.8" fill="#0284c7" />
+          <path d="M 0 -7 Q 3.5 -3.5 0 0 Q -3.5 3.5 0 7 M -7 0 Q -3.5 -3.5 0 0 Q 3.5 3.5 7 0" stroke="#0284c7" stroke-width="1.8" fill="none" stroke-linecap="round" />
+        </g>
       </g>
       <text x="435" y="155" fill="#94a3b8" font-size="11" text-anchor="middle">Pompa CWU</text>
 
       <!-- CO CIRCULATION PUMP (Pompa CO) -->
-      <g class="pump-rotor" class:pump-active={chPump} transform="translate(620, 100)">
+      <g class="pump-group" class:pump-active={chPump} transform="translate(620, 100)">
         <circle cx="0" cy="0" r="15" fill="#0f172a" stroke="#ef4444" stroke-width="2" />
-        <path class="pump-rotor" d="M -8 -8 L 8 8 M -8 8 L 8 -8" stroke="#ef4444" stroke-width="2.5" />
+        <g class="pump-impeller">
+          {#if chPump}
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              from="0 0 0"
+              to="360 0 0"
+              dur="1.2s"
+              repeatCount="indefinite"
+            />
+          {/if}
+          <circle cx="0" cy="0" r="3" fill="#ef4444" />
+          <path d="M 0 -8 Q 4 -4 0 0 Q -4 4 0 8 M -8 0 Q -4 -4 0 0 Q 4 4 8 0" stroke="#ef4444" stroke-width="2" fill="none" stroke-linecap="round" />
+        </g>
       </g>
       <text x="620" y="75" fill="#94a3b8" font-size="11" text-anchor="middle">Pompa CO</text>
 
@@ -137,9 +163,22 @@
       <text x="720" y="245" fill="#e2e8f0" font-size="12" font-weight="600" text-anchor="middle">GRZEJNIKI</text>
 
       <!-- RETURN PUMP & SENSOR (Pompa Mieszacza / Powrót) -->
-      <g class="pump-rotor" class:pump-active={mixerPump} transform="translate(285, 330)">
+      <g class="pump-group" class:pump-active={mixerPump} transform="translate(285, 330)">
         <circle cx="0" cy="0" r="13" fill="#0f172a" stroke="#6366f1" stroke-width="2" />
-        <path class="pump-rotor" d="M -7 -7 L 7 7 M -7 7 L 7 -7" stroke="#6366f1" stroke-width="2" />
+        <g class="pump-impeller">
+          {#if mixerPump}
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              from="0 0 0"
+              to="360 0 0"
+              dur="1.2s"
+              repeatCount="indefinite"
+            />
+          {/if}
+          <circle cx="0" cy="0" r="2.5" fill="#6366f1" />
+          <path d="M 0 -6.5 Q 3 -3 0 0 Q -3 3 0 6.5 M -6.5 0 Q -3 -3 0 0 Q 3 3 6.5 0" stroke="#6366f1" stroke-width="1.8" fill="none" stroke-linecap="round" />
+        </g>
       </g>
       <text x="285" y="360" fill="#94a3b8" font-size="11" text-anchor="middle">Mieszacz</text>
 
