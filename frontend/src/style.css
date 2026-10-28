@@ -251,6 +251,12 @@ body {
   }
 }
 
+.schematic-column {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
 /* Hydraulic Schematic Card */
 .schematic-card {
   background: var(--bg-card);
@@ -450,6 +456,48 @@ body {
   font-size: 0.85rem;
   color: var(--text-secondary);
   margin-left: auto;
+}
+
+/* Temp Readings Grid (side-by-side Zmierzona & Zadana with identical large typography) */
+.temp-readings-grid {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+  background: rgba(15, 23, 42, 0.45);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.temp-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.temp-col-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.temp-col-value {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.temp-col-divider {
+  width: 1px;
+  height: 2.2rem;
+  background: var(--border-color);
+  opacity: 0.6;
 }
 
 /* Setpoint Stepper Controls */
@@ -1053,4 +1101,217 @@ body {
 @keyframes slideIn {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
+}
+
+/* Badges for Lowered / Comfort temperature mode */
+.badge-lowered {
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.badge-comfort {
+  background: rgba(249, 115, 22, 0.2);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  color: var(--accent-flame);
+  font-size: 0.75rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.mode-remaining-badge {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  background: rgba(15, 23, 42, 0.5);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+/* Schedule Timeline Blocks Card */
+.schedule-preview-card {
+  border-left: 3px solid #6366f1;
+}
+
+.timeline-wrapper {
+  margin: 0.75rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.timeline-header-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.timeline-legend {
+  display: flex;
+  gap: 0.85rem;
+  font-size: 0.75rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.legend-swatch.comfort {
+  background: var(--accent-flame);
+}
+
+.legend-swatch.lowered {
+  background: #6366f1;
+}
+
+.timeline-blocks {
+  display: grid;
+  grid-template-columns: repeat(24, 1fr);
+  gap: 3px;
+  height: 48px;
+  background: rgba(15, 23, 42, 0.7);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+  margin-top: 14px;
+}
+
+.t-block {
+  position: relative;
+  border-radius: 3px;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding-bottom: 2px;
+}
+
+.t-block:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.25);
+  z-index: 5;
+}
+
+.t-block.comfort {
+  background: linear-gradient(180deg, #f97316 0%, #ea580c 100%);
+}
+
+.t-block.lowered {
+  background: linear-gradient(180deg, #6366f1 0%, #4338ca 100%);
+}
+
+.t-block.current {
+  outline: 2px solid #38bdf8;
+  outline-offset: 1px;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);
+  z-index: 4;
+}
+
+.current-indicator {
+  position: absolute;
+  top: -19px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.58rem;
+  font-weight: 800;
+  background: #38bdf8;
+  color: #0f172a;
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.block-hour {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+}
+
+.schedule-actions-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+}
+
+.btn-quick-mode {
+  padding: 0.45rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-quick-mode.night {
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+.btn-quick-mode.night:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.35);
+  color: #ffffff;
+}
+
+.btn-quick-mode.day {
+  background: rgba(249, 115, 22, 0.2);
+  color: #fed7aa;
+  border: 1px solid rgba(249, 115, 22, 0.4);
+}
+
+.btn-quick-mode.day:hover:not(:disabled) {
+  background: rgba(249, 115, 22, 0.35);
+  color: #ffffff;
+}
+
+.btn-quick-mode.neutral {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.btn-quick-mode.neutral:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+}
+
+.btn-quick-mode:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

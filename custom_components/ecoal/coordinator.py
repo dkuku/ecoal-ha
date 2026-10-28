@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .client import SENSOR_NAMES, EcoalClient
+from .client import PARAM_PROG_CO_TAB, SENSOR_NAMES, EcoalClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -134,6 +134,43 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if self.data is not None:
                 self.data["mixer_circuit"] = mode
                 self.async_update_listeners()
+            await self.async_request_refresh()
+        return success
+
+    async def async_force_co_mode(self, lowered: bool, hours: int = 2) -> bool:
+        """Force lowered ('0') or comfort ('1') mode in CO weekly schedule for next hours."""
+        schedule = await self.client.get_weekly_program(PARAM_PROG_CO_TAB)
+        if not schedule or len(schedule) != 7:
+            return False
+
+        now = datetime.now()
+        data = self.data or {}
+        ctrl_dt = data.get("controller_datetime")
+        if ctrl_dt:
+            try:
+                now = datetime.fromisoformat(ctrl_dt)
+            except Exception:
+                pass
+
+        # eCoal weekly program day: 0=Sunday, 1=Monday, ..., 6=Saturday
+        day_idx = (now.weekday() + 1) % 7
+        slot_idx = now.hour * 2 + (1 if now.minute >= 30 else 0)
+        target_bit = "0" if lowered else "1"
+
+        days_copy = list(schedule)
+        total_slots = max(1, hours * 2)
+        for offset in range(total_slots):
+            cur_slot = slot_idx + offset
+            cur_day = (day_idx + (cur_slot // 48)) % 7
+            cur_slot = cur_slot % 48
+
+            day_str = days_copy[cur_day]
+            chars = list(day_str)
+            chars[cur_slot] = target_bit
+            days_copy[cur_day] = "".join(chars)
+
+        success = await self.client.set_weekly_program(PARAM_PROG_CO_TAB, days_copy)
+        if success:
             await self.async_request_refresh()
         return success
 

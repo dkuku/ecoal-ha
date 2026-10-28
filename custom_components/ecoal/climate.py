@@ -9,6 +9,7 @@ from homeassistant.components.climate import (
     HVACAction,
     HVACMode,
 )
+from homeassistant.components.climate.const import PRESET_COMFORT, PRESET_SLEEP
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
@@ -43,7 +44,10 @@ class EcoalHeatingClimate(CoordinatorEntity[EcoalCoordinator], ClimateEntity):
     _attr_translation_key = "heating"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.OFF]
-    _attr_supported_features = ClimateEntityFeature.TARGET_TEMPERATURE
+    _attr_supported_features = (
+        ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+    )
+    _attr_preset_modes = [PRESET_COMFORT, PRESET_SLEEP]
     _attr_min_temp = 30
     _attr_max_temp = 80
     _attr_target_temperature_step = 1
@@ -99,6 +103,30 @@ class EcoalHeatingClimate(CoordinatorEntity[EcoalCoordinator], ClimateEntity):
         else:
             await self.coordinator.client.set_auto_mode(False)
         await self.coordinator.async_request_refresh()
+
+    @property
+    def preset_mode(self) -> str | None:
+        if self.coordinator.data is None:
+            return None
+        if self.coordinator.data.get("co_lowered_active"):
+            return PRESET_SLEEP
+        return PRESET_COMFORT
+
+    async def async_set_preset_mode(self, preset_mode: str) -> None:
+        if preset_mode == PRESET_SLEEP:
+            await self.coordinator.async_force_co_mode(lowered=True, hours=2)
+        elif preset_mode == PRESET_COMFORT:
+            await self.coordinator.async_force_co_mode(lowered=False, hours=2)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self.coordinator.data or {}
+        return {
+            "co_lowered_active": data.get("co_lowered_active", False),
+            "co_lowered_amount": data.get("co_lowered_amount", 0),
+            "day_night": "night" if data.get("day_night") == 1 else "day",
+            "setpoint_mode": data.get("setpoint_mode", 0),
+        }
 
 
 class EcoalCWUClimate(CoordinatorEntity[EcoalCoordinator], ClimateEntity):

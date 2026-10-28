@@ -95,6 +95,14 @@ async def test_api_ecoal_views(hass: HomeAssistant, hass_client_no_auth, mock_fu
     assert result == {"success": True}
     mock_coordinator.async_set_mixer_mode.assert_awaited_with(1)
 
+    # 5b. Test POST /api/ecoal/control -> force_co_mode
+    mock_coordinator.async_force_co_mode = AsyncMock(return_value=True)
+    resp = await client.post("/api/ecoal/control", json={"action": "force_co_mode", "lowered": True, "hours": 2})
+    assert resp.status == 200
+    result = await resp.json()
+    assert result == {"success": True}
+    mock_coordinator.async_force_co_mode.assert_awaited_with(lowered=True, hours=2)
+
     # 6. Test error cases
     resp = await client.get("/api/ecoal/com")
     assert resp.status == 400

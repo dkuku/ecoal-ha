@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 import os
+import re
+import time
 
 from aiohttp import web
 from homeassistant.components import frontend
@@ -156,6 +158,10 @@ class EcoalControlView(HomeAssistantView):
                 success = await coordinator.async_set_mixer_mode(mode)
             elif action == "ack_alarm":
                 success = await coordinator.client.ack_alarms()
+            elif action == "force_co_mode":
+                lowered = bool(body.get("lowered", True))
+                hours = int(body.get("hours", 2))
+                success = await coordinator.async_force_co_mode(lowered=lowered, hours=hours)
             else:
                 return self.json({"error": f"Unknown action: {action}"}, status_code=400)
         except (ValueError, TypeError) as err:
@@ -165,6 +171,44 @@ class EcoalControlView(HomeAssistantView):
             await coordinator.async_request_refresh()
             return self.json({"success": True})
         return self.json({"error": "Furnace rejected command"}, status_code=500)
+
+
+class EcoalIndexView(HomeAssistantView):
+    """Serve index.html with strict anti-cache headers and dynamic asset versioning."""
+
+    url = "/ecoal_ui/index.html"
+    extra_urls = ["/ecoal_ui", "/ecoal_ui/"]
+    name = "ecoal_ui:index"
+    requires_auth = False
+    cors_allowed = True
+
+    async def get(self, request: web.Request) -> web.Response:
+        return await self._serve(request)
+
+    async def head(self, request: web.Request) -> web.Response:
+        return await self._serve(request)
+
+    async def _serve(self, request: web.Request) -> web.Response:
+        index_path = os.path.join(os.path.dirname(__file__), "www", "index.html")
+        try:
+            with open(index_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        except OSError:
+            return web.Response(status=404, text="index.html not found")
+
+        ts = int(time.time())
+        content = re.sub(r'bundle\.js(\?v=[^"\'\s>]+)?', f'bundle.js?v={ts}', content)
+        content = re.sub(r'bundle\.css(\?v=[^"\'\s>]+)?', f'bundle.css?v={ts}', content)
+
+        return web.Response(
+            text=content,
+            content_type="text/html",
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
 
 
 async def async_setup_views(hass: HomeAssistant) -> None:
@@ -183,13 +227,15 @@ async def async_setup_views(hass: HomeAssistant) -> None:
             _LOGGER.debug("Could not register static path /ecoal_ui: %s", err)
 
         try:
+            hass.http.register_view(EcoalIndexView)
             hass.http.register_view(EcoalComProxyView)
             hass.http.register_view(EcoalStatusView)
             hass.http.register_view(EcoalControlView)
         except Exception as err:
             _LOGGER.debug("Could not register HTTP views: %s", err)
 
-    # Register HA Sidebar Panel
+    # Register HA Sidebar Panel with cache-busting timestamp
+    ts = int(time.time())
     if hasattr(frontend, "async_register_built_in_panel") and "frontend" in hass.config.components:
         try:
             frontend.async_register_built_in_panel(
@@ -198,7 +244,7 @@ async def async_setup_views(hass: HomeAssistant) -> None:
                 sidebar_title="Kocioł eCoal",
                 sidebar_icon="mdi:fire",
                 frontend_url_path="ecoal_panel",
-                config={"url": "/ecoal_ui/index.html"},
+                config={"url": f"/ecoal_ui/index.html?v={ts}"},
                 require_admin=False,
                 update=True,
             )

@@ -266,6 +266,9 @@
     <Dashboard
       {status}
       hopperCapacity={150}
+      {client}
+      {showToast}
+      onSelectTab={(tab) => (activeTab = tab)}
       onStepSetpoint={handleStepSetpoint}
       onRefillHopper={handleRefillHopper}
       onSetFeederMode={handleSetFeederMode}

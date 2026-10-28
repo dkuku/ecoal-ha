@@ -27,7 +27,9 @@
     "button": {
       "refill_hopper": { "name": "Zasypano zasobnik (100%)" },
       "ack_alarms": { "name": "Potwierdź alarmy" },
-      "sync_clock": { "name": "Synchronizuj zegar" }
+      "sync_clock": { "name": "Synchronizuj zegar" },
+      "force_co_lowered": { "name": "Wymuś obniżenie CO (2h)" },
+      "force_co_comfort": { "name": "Wymuś komfort CO (2h)" }
     },
     "climate": {
       "heating": { "name": "Ogrzewanie" },

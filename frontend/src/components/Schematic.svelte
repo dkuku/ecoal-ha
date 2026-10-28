@@ -12,6 +12,7 @@
     mixerCircuit = null,
     hasMixer = undefined,
     fuelPct = 0,
+    fuelKg = null,
     chPump = false,
     dhwPump = false,
     mixerPump = false,
@@ -181,8 +182,13 @@
       <rect x="18" y="145" width="56" height="10" rx="2" fill="#334155" stroke="#64748b" stroke-width="1.5" />
       <polygon points="20,155 72,155 68,255 54,282 38,282 24,255" fill="#1e293b" stroke="#475569" stroke-width="1.5" />
       <polygon points="23,195 69,195 67,254 53,280 39,280 25,254" fill="#090d16" opacity="0.85" />
-      <text x="46" y="175" fill="#94a3b8" font-size="9" font-weight="700" text-anchor="middle">ZASOBNIK</text>
-      <text x="46" y="190" fill="var(--accent-flame)" font-size="11" font-weight="800" text-anchor="middle">{fuelPct}%</text>
+      <text x="46" y="172" fill="#94a3b8" font-size="8.5" font-weight="700" text-anchor="middle">ZASOBNIK</text>
+      <text x="46" y="187" fill="var(--accent-flame)" font-size="11.5" font-weight="800" text-anchor="middle">
+        {fuelKg != null ? `${fuelKg} kg` : `${fuelPct}%`}
+      </text>
+      <text x="46" y="200" fill="#cbd5e1" font-size="9" font-weight="700" text-anchor="middle">
+        {fuelPct}%
+      </text>
 
       <!-- Feeder Tube (Rura podajnika ślimakowego) -->
       <rect x="35" y="282" width="105" height="24" rx="3" fill="#090d16" stroke="#475569" stroke-width="1.5" />
@@ -280,11 +286,11 @@
       </g>
 
       <!-- Boiler Temp Badge -->
-      <rect x="175" y="146" width="95" height="34" rx="6" fill="#0f172a" stroke="#ef4444" stroke-width="1.5" />
-      <text x="222" y="161" fill="#f8fafc" font-size="12.5" font-weight="800" text-anchor="middle">
+      <rect x="120" y="148" width="110" height="48" rx="8" fill="#0f172a" stroke="#ef4444" stroke-width="1.8" />
+      <text x="175" y="167" fill="#f8fafc" font-size="13" font-weight="800" text-anchor="middle">
         {boilerTemp !== null && boilerTemp !== undefined ? `${boilerTemp.toFixed(1)}°C` : '--°C'}
       </text>
-      <text x="222" y="174" fill="#94a3b8" font-size="7.5" font-weight="600" text-anchor="middle">
+      <text x="175" y="187" fill="#fb923c" font-size="13" font-weight="800" text-anchor="middle">
         {targetBoilerTemp ? `Zad: ${targetBoilerTemp}°C` : 'Zasilanie CO'}
       </text>
 
@@ -326,11 +332,11 @@
       <text x="535" y="142" fill="#64748b" font-size="8" text-anchor="middle">wężownica grzewcza</text>
 
       <!-- CWU Temp Badge inside Tank -->
-      <rect x="496" y="68" width="98" height="28" rx="6" fill="#0f172a" stroke="#0284c7" stroke-width="1.5" />
-      <text x="545" y="83" fill="#38bdf8" font-size="12.5" font-weight="800" text-anchor="middle">
+      <rect x="490" y="66" width="110" height="46" rx="8" fill="#0f172a" stroke="#0284c7" stroke-width="1.8" />
+      <text x="545" y="84" fill="#38bdf8" font-size="13" font-weight="800" text-anchor="middle">
         {dhwTemp !== null && dhwTemp !== undefined ? `${dhwTemp.toFixed(1)}°C` : '--°C'}
       </text>
-      <text x="545" y="93" fill="#94a3b8" font-size="7.5" font-weight="600" text-anchor="middle">
+      <text x="545" y="103" fill="#93c5fd" font-size="13" font-weight="800" text-anchor="middle">
         {targetDhwTemp ? `Zad: ${targetDhwTemp}°C` : 'Woda w bojlerze'}
       </text>
 

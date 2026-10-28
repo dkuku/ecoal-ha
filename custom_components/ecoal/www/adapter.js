@@ -393,4 +393,34 @@ export class EcoalClient {
     const raw = await this.adapter.sendHexCmd(cmd);
     return raw && (raw[2] === 6 || raw[2] === 21);
   }
+
+  async forceCoMode(lowered = true, hours = 2) {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "force_co_mode", lowered, hours }),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    const p24 = await this.getWeeklyProgram(24);
+    if (!p24 || p24.length !== 7) return false;
+    const now = new Date();
+    const dayIdx = now.getDay();
+    const slotIdx = now.getHours() * 2 + (now.getMinutes() >= 30 ? 1 : 0);
+    const targetBit = lowered ? "0" : "1";
+    const totalSlots = Math.max(1, hours * 2);
+    const daysCopy = [...p24];
+    for (let offset = 0; offset < totalSlots; offset++) {
+      let curSlot = slotIdx + offset;
+      let curDay = (dayIdx + Math.floor(curSlot / 48)) % 7;
+      curSlot = curSlot % 48;
+      const chars = daysCopy[curDay].split("");
+      chars[curSlot] = targetBit;
+      daysCopy[curDay] = chars.join("");
+    }
+    return await this.setWeeklyProgram(24, daysCopy);
+  }
 }

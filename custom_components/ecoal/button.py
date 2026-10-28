@@ -45,6 +45,18 @@ BUTTON_DESCRIPTIONS: tuple[EcoalButtonDescription, ...] = (
         entity_category=EntityCategory.CONFIG,
         press_fn=lambda coord: _sync_and_refresh(coord),
     ),
+    EcoalButtonDescription(
+        key="force_co_lowered",
+        translation_key="force_co_lowered",
+        icon="mdi:weather-night",
+        press_fn=lambda coord: coord.async_force_co_mode(lowered=True, hours=2),
+    ),
+    EcoalButtonDescription(
+        key="force_co_comfort",
+        translation_key="force_co_comfort",
+        icon="mdi:weather-sunny",
+        press_fn=lambda coord: coord.async_force_co_mode(lowered=False, hours=2),
+    ),
 )
 
 

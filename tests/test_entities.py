@@ -183,6 +183,22 @@ async def test_all_ecoal_entities(hass: HomeAssistant, furnace_server: EcoalMock
         {ATTR_ENTITY_ID: "button.ecoal_synchronize_clock"},
         blocking=True,
     )
+    btn_lowered = hass.states.get("button.ecoal_force_lowered_co_temp_2h")
+    assert btn_lowered is not None
+    await hass.services.async_call(
+        "button",
+        "press",
+        {ATTR_ENTITY_ID: "button.ecoal_force_lowered_co_temp_2h"},
+        blocking=True,
+    )
+    btn_comfort = hass.states.get("button.ecoal_force_comfort_co_temp_2h")
+    assert btn_comfort is not None
+    await hass.services.async_call(
+        "button",
+        "press",
+        {ATTR_ENTITY_ID: "button.ecoal_force_comfort_co_temp_2h"},
+        blocking=True,
+    )
     await hass.async_block_till_done()
 
     # 8. Test unload entry

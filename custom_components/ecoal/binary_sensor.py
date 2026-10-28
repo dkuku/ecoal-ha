@@ -36,15 +36,13 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[EcoalBinarySensorDescription, ...] = (
         key="co_lowered_active",
         value_key="co_lowered_active",
         translation_key="co_lowered_active",
-        icon="mdi:thermometer-minus",
-        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:weather-night",
     ),
     EcoalBinarySensorDescription(
         key="cwu_lowered_active",
         value_key="cwu_lowered_active",
         translation_key="cwu_lowered_active",
-        icon="mdi:thermometer-minus",
-        entity_category=EntityCategory.DIAGNOSTIC,
+        icon="mdi:weather-night",
     ),
     EcoalBinarySensorDescription(
         key="is_summer",

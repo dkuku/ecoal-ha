@@ -27,7 +27,9 @@
     "button": {
       "refill_hopper": { "name": "Refill hopper (100%)" },
       "ack_alarms": { "name": "Acknowledge alarms" },
-      "sync_clock": { "name": "Synchronize clock" }
+      "sync_clock": { "name": "Synchronize clock" },
+      "force_co_lowered": { "name": "Force lowered CO temp (2h)" },
+      "force_co_comfort": { "name": "Force comfort CO temp (2h)" }
     },
     "climate": {
       "heating": { "name": "Heating" },

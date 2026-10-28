@@ -280,6 +280,15 @@ export function decodeStatusFrame(tab) {
     second: d[41],
   };
 
+  // Lowered & room modes (bytes 42..52 in data, frame bytes 50..60)
+  result.co_lowered_active = Boolean(d[42]);
+  result.cwu_lowered_active = Boolean(d[43]);
+  result.room_heating = d[44];
+  result.internal_setpoint = d[45];
+  result.day_night = d[46];
+  result.co_lowered_amount = d[51];
+  result.cwu_lowered_amount = d[52];
+
   // Feeder runtime in seconds (bytes 56..59 in data)
   const rtSec = d[56] | (d[57] << 8) | (d[58] << 16) | (d[59] << 24);
   result.feeder_runtime_sec = rtSec;
