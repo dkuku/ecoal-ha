@@ -29,7 +29,9 @@
       "ack_alarms": { "name": "Potwierdź alarmy" },
       "sync_clock": { "name": "Synchronizuj zegar" },
       "force_co_lowered": { "name": "Wymuś obniżenie CO (2h)" },
-      "force_co_comfort": { "name": "Wymuś komfort CO (2h)" }
+      "force_co_comfort": { "name": "Wymuś komfort CO (2h)" },
+      "trigger_legionella": { "name": "Dezynfekcja Legionelli (30 min)" },
+      "cancel_legionella": { "name": "Anuluj dezynfekcję Legionelli" }
     },
     "climate": {
       "heating": { "name": "Ogrzewanie" },
@@ -101,7 +103,8 @@
       "coal_feeder": { "name": "Podajnik" },
       "auto_mode": { "name": "Tryb automatyczny" },
       "dhw_priority": { "name": "Priorytet CWU" },
-      "exhaust_temp_regulator": { "name": "Regulator temperatury spalin" }
+      "exhaust_temp_regulator": { "name": "Regulator temperatury spalin" },
+      "anti_legionella": { "name": "Dezynfekcja termiczna Legionelli" }
     }
   }
 }

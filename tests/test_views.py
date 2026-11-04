@@ -103,6 +103,19 @@ async def test_api_ecoal_views(hass: HomeAssistant, hass_client_no_auth, mock_fu
     assert result == {"success": True}
     mock_coordinator.async_force_co_mode.assert_awaited_with(lowered=True, hours=2)
 
+    # 5c. Test POST /api/ecoal/control -> start_legionella & stop_legionella
+    mock_coordinator.async_start_legionella = AsyncMock(return_value=True)
+    mock_coordinator.async_stop_legionella = AsyncMock(return_value=True)
+    resp = await client.post("/api/ecoal/control", json={"action": "start_legionella", "duration": 30, "target_dhw": 60, "target_co": 65})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.async_start_legionella.assert_awaited_with(target_dhw=60, target_co=65, duration_mins=30)
+
+    resp = await client.post("/api/ecoal/control", json={"action": "stop_legionella"})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.async_stop_legionella.assert_awaited_with(reason="manual_cancel")
+
     # 6. Test error cases
     resp = await client.get("/api/ecoal/com")
     assert resp.status == 400

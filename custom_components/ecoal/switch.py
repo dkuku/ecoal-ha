@@ -86,6 +86,13 @@ SWITCH_DESCRIPTIONS: tuple[EcoalSwitchDescription, ...] = (
         entity_category=EntityCategory.CONFIG,
         set_fn=lambda coord, on: coord.async_set_exhaust_temp_regulator(on),
     ),
+    EcoalSwitchDescription(
+        key="anti_legionella",
+        value_key="anti_legionella",
+        translation_key="anti_legionella",
+        icon="mdi:shield-bug",
+        set_fn=lambda coord, on: coord.async_start_legionella() if on else coord.async_stop_legionella(),
+    ),
 )
 
 
@@ -126,9 +133,17 @@ class EcoalSwitch(CoordinatorEntity[EcoalCoordinator], SwitchEntity):
 
     @property
     def is_on(self) -> bool | None:
+        if self.entity_description.key == "anti_legionella":
+            return self.coordinator.legionella_active
         if self.coordinator.data is None:
             return None
         return self.coordinator.data.get(self.entity_description.value_key)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        if self.entity_description.key == "anti_legionella":
+            return self.coordinator.legionella_state
+        return None
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         desc = self.entity_description

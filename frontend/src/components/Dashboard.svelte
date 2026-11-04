@@ -4,7 +4,7 @@
 
   let {
     status = {},
-    hopperCapacity = 150,
+    hopperCapacity = 100,
     client = null,
     showToast = () => {},
     onSelectTab = () => {},
@@ -88,6 +88,69 @@
       showToast(`Błąd: ${err.message}`, 'error');
     } finally {
       isForcingMode = false;
+    }
+  }
+
+  let isTriggeringLegionella = $state(false);
+  let legionella = $derived(status?.legionella || {});
+  let isLegionellaActive = $derived(Boolean(legionella?.active));
+  let legionellaPhase = $derived(legionella?.phase || 'idle');
+  let legionellaSecondsLeft = $derived(legionella?.holding_seconds_left ?? 1800);
+
+  let legionellaTimerDisplay = $derived.by(() => {
+    const total = Math.max(0, legionellaSecondsLeft);
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  });
+
+  function formatLegionellaDate(isoStr) {
+    if (!isoStr) return '';
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '';
+      const day = d.getDate().toString().padStart(2, '0');
+      const mon = (d.getMonth() + 1).toString().padStart(2, '0');
+      const h = d.getHours().toString().padStart(2, '0');
+      const min = d.getMinutes().toString().padStart(2, '0');
+      return `${day}.${mon} ${h}:${min}`;
+    } catch {
+      return '';
+    }
+  }
+
+  async function handleStartLegionella() {
+    if (!client || isTriggeringLegionella) return;
+    if (!confirm('Czy na pewno chcesz uruchomić dezynfekcję termiczną CWU do 60°C (czas wygrzewania: 30 min)?')) return;
+    isTriggeringLegionella = true;
+    try {
+      const ok = await client.startLegionella(30);
+      if (ok) {
+        showToast('Uruchomiono dezynfekcję Legionelli (zadana CWU: 60°C, CO: 65°C)', 'success');
+      } else {
+        showToast('Błąd uruchamiania dezynfekcji termicznej', 'error');
+      }
+    } catch (err) {
+      showToast(`Wyjątek: ${err.message}`, 'error');
+    } finally {
+      isTriggeringLegionella = false;
+    }
+  }
+
+  async function handleStopLegionella() {
+    if (!client || isTriggeringLegionella) return;
+    isTriggeringLegionella = true;
+    try {
+      const ok = await client.stopLegionella();
+      if (ok) {
+        showToast('Zatrzymano dezynfekcję termiczną i przywrócono nastawy', 'info');
+      } else {
+        showToast('Błąd zatrzymywania dezynfekcji', 'error');
+      }
+    } catch (err) {
+      showToast(`Wyjątek: ${err.message}`, 'error');
+    } finally {
+      isTriggeringLegionella = false;
     }
   }
 
@@ -351,6 +414,60 @@
         <button class="step-btn" onclick={() => onStepSetpoint('cwu', -1)} aria-label="Zmniejsz zadaną CWU">-</button>
         <span class="step-target-display">Zmień zadaną</span>
         <button class="step-btn" onclick={() => onStepSetpoint('cwu', 1)} aria-label="Zwiększ zadaną CWU">+</button>
+      </div>
+
+      <!-- Sekcja Dezynfekcji Legionelli -->
+      <div class="legionella-section">
+        {#if isLegionellaActive}
+          <div class="legionella-banner active">
+            <div class="legionella-status-row">
+              <span class="legionella-icon">🛡</span>
+              <div class="legionella-info">
+                <span class="legionella-title">
+                  {#if legionellaPhase === 'heating'}
+                    Rozgrzewanie do 60°C...
+                  {:else if legionellaPhase === 'holding'}
+                    Wygrzewanie Legionelli (60°C)
+                  {:else}
+                    Dezynfekcja aktywna
+                  {/if}
+                </span>
+                <span class="legionella-timer">
+                  {#if legionellaPhase === 'heating'}
+                    CWU: {status?.dhw_temp != null ? status.dhw_temp.toFixed(1) : '--'}°C / 60°C
+                  {:else}
+                    Pozostało: <strong>{legionellaTimerDisplay}</strong>
+                  {/if}
+                </span>
+              </div>
+            </div>
+            <button
+              class="btn-legionella-cancel"
+              onclick={handleStopLegionella}
+              disabled={isTriggeringLegionella}
+              title="Przerwij dezynfekcję termiczną i przywróć poprzednie temperatury"
+            >
+              ⏹ Zatrzymaj
+            </button>
+          </div>
+        {:else}
+          <div class="legionella-banner idle">
+            <button
+              class="btn-legionella-start"
+              onclick={handleStartLegionella}
+              disabled={isTriggeringLegionella}
+              title="Wygrzej bojler do 60°C przez 30 minut, aby wyeliminować bakterie Legionella"
+            >
+              <span class="btn-icon">🦠</span>
+              <span class="btn-text">Dezynfekcja Legionelli (60°C)</span>
+            </button>
+            {#if legionella?.last_run}
+              <span class="legionella-last-run" title="Data ostatniej udanej dezynfekcji">
+                Ostatnio: {formatLegionellaDate(legionella.last_run)}
+              </span>
+            {/if}
+          </div>
+        {/if}
       </div>
     </div>
 

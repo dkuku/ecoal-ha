@@ -1,6 +1,7 @@
 """Data update coordinator for eCoal controller."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timedelta
 from typing import Any
@@ -33,13 +34,27 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.client = client
         self.firmware_version: str | None = None
         self.connected_sensors: set[str] = set()
-        self.hopper_capacity_kg: int = 150
+        self.hopper_capacity_kg: int = 100
         self.feeder_mode: int | None = None
         self.feeder_max_runtime: int | None = None
         self.dhw_priority: bool | None = None
         self.blower_correction: int | None = None
         self.exhaust_temp_regulator: bool | None = None
         self._extended_refresh_counter: int = 0
+        self._legionella_task: asyncio.Task | None = None
+        self._legionella_state: dict[str, Any] = {
+            "active": False,
+            "phase": "idle",
+            "target_temp": 60,
+            "boiler_target": 65,
+            "holding_duration": 1800,
+            "holding_seconds_left": 1800,
+            "total_elapsed": 0,
+            "started_at": None,
+            "last_run": None,
+            "saved_co_target": None,
+            "saved_dhw_target": None,
+        }
 
     async def async_refresh_extended_params(self) -> None:
         """Read extended furnace configuration parameters."""
@@ -210,4 +225,165 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         status["dhw_priority"] = self.dhw_priority
         status["blower_correction"] = self.blower_correction
         status["exhaust_temp_regulator"] = self.exhaust_temp_regulator
+        status["legionella"] = dict(self._legionella_state)
         return status
+
+    @property
+    def legionella_active(self) -> bool:
+        """Return True if anti-legionella disinfection is in progress."""
+        return bool(self._legionella_state.get("active", False))
+
+    @property
+    def legionella_state(self) -> dict[str, Any]:
+        """Return anti-legionella cycle state."""
+        return self._legionella_state
+
+    async def async_start_legionella(
+        self,
+        target_dhw: int = 60,
+        target_co: int = 65,
+        duration_mins: int = 30,
+    ) -> bool:
+        """Start anti-legionella thermal disinfection routine."""
+        if self._legionella_state.get("active"):
+            return True
+
+        saved_co = None
+        saved_dhw = None
+        if self.data:
+            saved_co = self.data.get("target_boiler_temp")
+            saved_dhw = self.data.get("target_dhw_temp")
+
+        if saved_co is None:
+            saved_co = 53
+        if saved_dhw is None:
+            saved_dhw = 50
+
+        # Set higher temperatures: boiler 65°C, DHW 60°C
+        ok_co = await self.client.set_target_boiler_temp(target_co)
+        ok_dhw = await self.client.set_target_dhw_temp(target_dhw)
+
+        if not (ok_co and ok_dhw):
+            _LOGGER.error(
+                "Failed to set anti-legionella target temperatures (CO: %s, CWU: %s)",
+                target_co,
+                target_dhw,
+            )
+            return False
+
+        # If furnace in manual mode, turn on auto mode
+        if self.data and self.data.get("auto_mode") is False:
+            await self.client.set_auto_mode(True)
+
+        holding_sec = max(60, int(duration_mins * 60))
+        self._legionella_state = {
+            "active": True,
+            "phase": "heating",
+            "target_temp": target_dhw,
+            "boiler_target": target_co,
+            "holding_duration": holding_sec,
+            "holding_seconds_left": holding_sec,
+            "total_elapsed": 0,
+            "started_at": datetime.now().isoformat(),
+            "last_run": self._legionella_state.get("last_run"),
+            "saved_co_target": saved_co,
+            "saved_dhw_target": saved_dhw,
+        }
+        if self.data is not None:
+            self.data["legionella"] = dict(self._legionella_state)
+            self.async_update_listeners()
+
+        if self._legionella_task and not self._legionella_task.done():
+            self._legionella_task.cancel()
+        self._legionella_task = self.hass.async_create_background_task(
+            self._async_legionella_loop(),
+            name="ecoal_anti_legionella_loop",
+        )
+        return True
+
+    async def async_stop_legionella(self, reason: str = "manual_cancel") -> bool:
+        """Stop anti-legionella thermal disinfection and restore original setpoints."""
+        if self._legionella_task and not self._legionella_task.done():
+            self._legionella_task.cancel()
+            self._legionella_task = None
+
+        saved_co = self._legionella_state.get("saved_co_target")
+        saved_dhw = self._legionella_state.get("saved_dhw_target")
+
+        if saved_co is not None:
+            await self.client.set_target_boiler_temp(saved_co)
+        if saved_dhw is not None:
+            await self.client.set_target_dhw_temp(saved_dhw)
+
+        last_run = self._legionella_state.get("last_run")
+        if reason == "completed":
+            last_run = datetime.now().isoformat()
+
+        self._legionella_state = {
+            "active": False,
+            "phase": "completed" if reason == "completed" else "idle",
+            "target_temp": 60,
+            "boiler_target": 65,
+            "holding_duration": 1800,
+            "holding_seconds_left": 0 if reason == "completed" else 1800,
+            "total_elapsed": self._legionella_state.get("total_elapsed", 0),
+            "started_at": None,
+            "last_run": last_run,
+            "saved_co_target": None,
+            "saved_dhw_target": None,
+        }
+        if self.data is not None:
+            self.data["legionella"] = dict(self._legionella_state)
+            self.async_update_listeners()
+            await self.async_request_refresh()
+        return True
+
+    async def _async_legionella_loop(self) -> None:
+        """Background monitoring loop for thermal disinfection."""
+        max_timeout_sec = 7200  # 2 hours max safety timeout
+        poll_interval = 2
+        try:
+            while self._legionella_state.get("active"):
+                await asyncio.sleep(poll_interval)
+                self._legionella_state["total_elapsed"] += poll_interval
+
+                cur_dhw = 0.0
+                if self.data:
+                    cur_dhw = float(self.data.get("dhw_temp", 0.0) or 0.0)
+
+                phase = self._legionella_state.get("phase")
+
+                # Phase 1: Heating up towards target (58.0°C threshold for holding)
+                if phase == "heating":
+                    if cur_dhw >= (self._legionella_state["target_temp"] - 2.0):
+                        self._legionella_state["phase"] = "holding"
+                        _LOGGER.info(
+                            "eCoal anti-legionella: DHW reached %s°C, holding countdown started (%ss)",
+                            cur_dhw,
+                            self._legionella_state["holding_seconds_left"],
+                        )
+                    elif self._legionella_state["total_elapsed"] >= max_timeout_sec:
+                        _LOGGER.warning(
+                            "eCoal anti-legionella: Max timeout (2h) reached without attaining 58°C. Aborting."
+                        )
+                        await self.async_stop_legionella(reason="timeout")
+                        break
+
+                # Phase 2: Holding disinfection temperature
+                elif phase == "holding":
+                    self._legionella_state["holding_seconds_left"] -= poll_interval
+                    if self._legionella_state["holding_seconds_left"] <= 0:
+                        _LOGGER.info("eCoal anti-legionella: Disinfection cycle successfully finished!")
+                        await self.async_stop_legionella(reason="completed")
+                        break
+
+                # Notify listeners
+                if self.data is not None:
+                    self.data["legionella"] = dict(self._legionella_state)
+                    self.async_update_listeners()
+
+        except asyncio.CancelledError:
+            pass
+        except Exception as err:
+            _LOGGER.exception("Error in anti-legionella monitoring loop: %s", err)
+            await self.async_stop_legionella(reason="error")

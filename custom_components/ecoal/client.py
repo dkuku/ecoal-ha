@@ -502,7 +502,7 @@ class EcoalClient:
     async def set_mixer_activation(self, on: bool) -> bool:
         return await self.set_mixer_mode(1 if on else 0)
 
-    async def refill_hopper(self, kg: int = 150) -> bool:
+    async def refill_hopper(self, kg: int = 100) -> bool:
         """Reset feeder runtime counter and record new coal refill (100% hopper)."""
         kg = max(1, min(1000, int(kg)))
         cmd = _build_frame(0x05, 0x00, CFG_RESET_FEEDER_TIME, [kg & 0xFF, (kg >> 8) & 0xFF])

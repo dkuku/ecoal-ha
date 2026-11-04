@@ -57,6 +57,18 @@ BUTTON_DESCRIPTIONS: tuple[EcoalButtonDescription, ...] = (
         icon="mdi:weather-sunny",
         press_fn=lambda coord: coord.async_force_co_mode(lowered=False, hours=2),
     ),
+    EcoalButtonDescription(
+        key="trigger_legionella",
+        translation_key="trigger_legionella",
+        icon="mdi:shield-bug",
+        press_fn=lambda coord: coord.async_start_legionella(target_dhw=60, target_co=65, duration_mins=30),
+    ),
+    EcoalButtonDescription(
+        key="cancel_legionella",
+        translation_key="cancel_legionella",
+        icon="mdi:close-circle-outline",
+        press_fn=lambda coord: coord.async_stop_legionella(reason="manual_cancel"),
+    ),
 )
 
 

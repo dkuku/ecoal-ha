@@ -128,7 +128,7 @@
   async function handleRefillHopper() {
     if (!confirm('Czy na pewno chcesz zresetować licznik zasypu do 100%?')) return;
     try {
-      const ok = await client.refillHopper(150);
+      const ok = await client.refillHopper(100);
       if (ok) {
         showToast('Zresetowano licznik zasypu do 100%', 'success');
         await fetchStatus();
@@ -265,7 +265,7 @@
   {#if activeTab === 'dashboard'}
     <Dashboard
       {status}
-      hopperCapacity={150}
+      hopperCapacity={status?.hopper_capacity_kg ?? 100}
       {client}
       {showToast}
       onSelectTab={(tab) => (activeTab = tab)}

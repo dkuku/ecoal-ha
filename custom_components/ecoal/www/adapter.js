@@ -367,10 +367,40 @@ export class EcoalClient {
     return raw && (raw[2] === 6 || raw[2] === 21);
   }
 
-  async refillHopper(kg = 150) {
+  async refillHopper(kg = 100) {
     const cmd = buildRefillHopperCmd(kg);
     const raw = await this.adapter.sendHexCmd(cmd);
     return raw && (raw[2] === 6 || raw[2] === 21);
+  }
+
+  async startLegionella(duration = 30) {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "start_legionella", duration }),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    const ok1 = await this.setTargetBoilerTemp(65);
+    const ok2 = await this.setTargetDhwTemp(60);
+    return ok1 && ok2;
+  }
+
+  async stopLegionella() {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "stop_legionella" }),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    return true;
   }
 
   async ackAlarms() {

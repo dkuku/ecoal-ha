@@ -75,6 +75,8 @@ class EcoalHopperCapacityNumber(CoordinatorEntity[EcoalCoordinator], RestoreEnti
         if last_state and last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
             try:
                 kg = int(float(last_state.state))
+                if kg == 150:
+                    kg = 100
                 self.coordinator.set_hopper_capacity(kg)
             except (ValueError, TypeError):
                 pass

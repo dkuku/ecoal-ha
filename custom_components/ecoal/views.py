@@ -162,6 +162,17 @@ class EcoalControlView(HomeAssistantView):
                 lowered = bool(body.get("lowered", True))
                 hours = int(body.get("hours", 2))
                 success = await coordinator.async_force_co_mode(lowered=lowered, hours=hours)
+            elif action == "start_legionella":
+                duration = int(body.get("duration", 30))
+                target_dhw = int(body.get("target_dhw", 60))
+                target_co = int(body.get("target_co", 65))
+                success = await coordinator.async_start_legionella(
+                    target_dhw=target_dhw,
+                    target_co=target_co,
+                    duration_mins=duration,
+                )
+            elif action == "stop_legionella":
+                success = await coordinator.async_stop_legionella(reason="manual_cancel")
             else:
                 return self.json({"error": f"Unknown action: {action}"}, status_code=400)
         except (ValueError, TypeError) as err:

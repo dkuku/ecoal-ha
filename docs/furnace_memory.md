@@ -36,9 +36,10 @@ Plik pamięci trwałej do analizy porównawczej po kilku dniach pracy kotła.
 ## 3. Punkt Bazowy Eksperymentu (Baseline)
 
 ### Pojemność zasobnika:
-- **Pojemność całkowita zasobnika:** **150 kg** (`number.garaz_ecoal_pojemnosc_zasobnika = 150.0 kg`).
-- 22.10.2026 o 17:11 CEST dosypano 2 worki (50 kg) **do pełna** (zasobnik był zapełniony w 100% = 150 kg).
-- Oznacza to, że wcześniejszy czas pracy ślimaka 136,4 minuty odpowiadał wypaleniu dokładnie 50 kg (ubytek od pełnego do poziomu na 2 worki).
+- **Pojemność robocza zasobnika (zaktualizowana 2026-11-04):** **100 kg** (`number.garaz_ecoal_pojemnosc_zasobnika = 100.0 kg`).
+- Zasyp 4 worków po 25 kg (100 kg) eliminuje problem przepełniania zasobnika, zsypywania się węgla i blokowania klapy.
+- Wcześniejsza pojemność bazowa wynosiła 150 kg (zasyp pod sam brzeg).
+- Czas pracy ślimaka do wypalenia 100 kg: $100 / 0,3666 = \mathbf{272,8\text{ min}}$.
 
 ### Oś czasu i bilans paliwa:
 1. **2026-10-22 17:11 CEST (15:11 UTC):**
@@ -68,7 +69,7 @@ Plik pamięci trwałej do analizy porównawczej po kilku dniach pracy kotła.
 | :--- | :--- | :--- | :--- |
 | **Zadana temp. kotła CO** | `PARAM 40` | **53°C** | Stabilna praca jesienna |
 | **Zadana temp. bojlera CWU** | `PARAM 17` | **50°C** | Zapewnia bezpieczną deltę $\Delta T = 3\text{--}7^\circ\text{C}$ |
-| **Czas postoju w podtrzymaniu** | `PARAM 13` | **45 min** | Zabezpiecza przekaźnik przed częstym klikaniem |
+| **Czas postoju w podtrzymaniu** | `PARAM 13` | **120 min** | Maksymalna wartość sterownika (zwiększono z 45 min po testach 6h postoju) |
 | **Czas pracy w podtrzymaniu** | `PARAM 10` | domyślny (~15s) | Podtrzymanie żaru |
 | **Korekta dmuchawy** | `PARAM 94` | `0%` | Prawidłowy nadmuch |
 | **Stan wyjść** | - | Pompa CWU: OFF, Pompa CO: ON, Dmuchawa: 4%, Ślimak: OFF | Kocioł cichy, brak ciągłego klikania |

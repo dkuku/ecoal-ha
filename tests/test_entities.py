@@ -72,8 +72,8 @@ async def test_all_ecoal_entities(hass: HomeAssistant, furnace_server: EcoalMock
 
     state_fuel_kg = hass.states.get("sensor.ecoal_fuel_remaining")
     assert state_fuel_kg is not None
-    # 150 kg * 99% = 148.5 kg
-    assert float(state_fuel_kg.state) == 148.5
+    # 100 kg * 99% = 99.0 kg
+    assert float(state_fuel_kg.state) == 99.0
 
     # 2. Test Binary Sensor states
     state_alarm = hass.states.get("binary_sensor.ecoal_alarm")
@@ -152,7 +152,7 @@ async def test_all_ecoal_entities(hass: HomeAssistant, furnace_server: EcoalMock
     # 6. Test Number entities
     state_hopper_cap = hass.states.get("number.ecoal_hopper_capacity")
     assert state_hopper_cap is not None
-    assert float(state_hopper_cap.state) == 150.0
+    assert float(state_hopper_cap.state) == 100.0
 
     await hass.services.async_call(
         "number",
@@ -199,6 +199,31 @@ async def test_all_ecoal_entities(hass: HomeAssistant, furnace_server: EcoalMock
         {ATTR_ENTITY_ID: "button.ecoal_force_comfort_co_temp_2h"},
         blocking=True,
     )
+
+    btn_legionella = hass.states.get("button.ecoal_disinfect_legionella_30_min")
+    assert btn_legionella is not None
+    await hass.services.async_call(
+        "button",
+        "press",
+        {ATTR_ENTITY_ID: "button.ecoal_disinfect_legionella_30_min"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    sw_legionella = hass.states.get("switch.ecoal_anti_legionella_disinfection")
+    assert sw_legionella is not None
+    assert sw_legionella.state == STATE_ON
+
+    await hass.services.async_call(
+        "button",
+        "press",
+        {ATTR_ENTITY_ID: "button.ecoal_cancel_legionella_disinfection"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    sw_legionella = hass.states.get("switch.ecoal_anti_legionella_disinfection")
+    assert sw_legionella.state == STATE_OFF
     await hass.async_block_till_done()
 
     # 8. Test unload entry

@@ -116,7 +116,7 @@ export function buildWriteParamCmd(paramId, value) {
   return buildFrame(0x02, 0x00, paramId, data);
 }
 
-export function buildRefillHopperCmd(kg = 150) {
+export function buildRefillHopperCmd(kg = 100) {
   const data = [kg & 0xff, (kg >> 8) & 0xff];
   return buildFrame(0x05, 0x00, 24, data); // CFG_RESET_FEEDER_TIME = 24
 }

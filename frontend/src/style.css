@@ -1315,3 +1315,126 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Anti-Legionella Disinfection Section */
+.legionella-section {
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 0.75rem;
+}
+
+.legionella-banner {
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  transition: var(--transition);
+}
+
+.legionella-banner.idle {
+  background: rgba(14, 165, 233, 0.06);
+  border: 1px dashed rgba(14, 165, 233, 0.28);
+}
+
+.legionella-banner.active {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.16), rgba(249, 115, 22, 0.16));
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.2);
+}
+
+.legionella-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.legionella-icon {
+  font-size: 1.3rem;
+  display: inline-block;
+  animation: pulse-glow 2s infinite ease-in-out;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+}
+
+.legionella-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.legionella-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fca5a5;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.legionella-timer {
+  font-size: 0.9rem;
+  color: #f8fafc;
+}
+
+.btn-legionella-start {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background: rgba(14, 165, 233, 0.18);
+  color: #7dd3fc;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-legionella-start:hover:not(:disabled) {
+  background: rgba(14, 165, 233, 0.32);
+  color: #ffffff;
+  border-color: rgba(14, 165, 233, 0.55);
+}
+
+.btn-legionella-cancel {
+  width: 100%;
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  border-radius: var(--radius-sm);
+  padding: 0.38rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-legionella-cancel:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.4);
+  color: #ffffff;
+}
+
+.btn-legionella-start:disabled,
+.btn-legionella-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.legionella-last-run {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+  display: block;
+}
