@@ -1,8 +1,10 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
   import Dashboard from './components/Dashboard.svelte';
+  import MaintenanceTab from './components/MaintenanceTab.svelte';
   import ParamsTab from './components/ParamsTab.svelte';
   import SchedulesTab from './components/SchedulesTab.svelte';
+  import ConfirmModal from './components/ConfirmModal.svelte';
   import {
     EcoalClient,
     HttpTransportAdapter,
@@ -125,19 +127,61 @@
     }
   }
 
-  async function handleRefillHopper() {
-    if (!confirm('Czy na pewno chcesz zresetować licznik zasypu do 100%?')) return;
+  let modalOpen = $state(false);
+  let modalTitle = $state('');
+  let modalMessage = $state('');
+  let modalConfirmText = $state('Potwierdź');
+  let modalIcon = $state('⚠️');
+  let modalDanger = $state(true);
+  let pendingAction = $state(null);
+
+  function openConfirm(options, actionFn) {
+    modalTitle = options.title || 'Potwierdzenie operacji';
+    modalMessage = options.message || 'Czy na pewno chcesz wykonać tę akcję?';
+    modalConfirmText = options.confirmText || 'Potwierdź';
+    modalIcon = options.icon || '⚠️';
+    modalDanger = options.danger !== false;
+    pendingAction = actionFn;
+    modalOpen = true;
+  }
+
+  function handleCancelModal() {
+    modalOpen = false;
+    pendingAction = null;
+  }
+
+  async function handleConfirmModal() {
+    if (!pendingAction) return;
     try {
-      const ok = await client.refillHopper(100);
-      if (ok) {
-        showToast('Zresetowano licznik zasypu do 100%', 'success');
-        await fetchStatus();
-      } else {
-        showToast('Błąd zapisu resetowania zasypu', 'error');
-      }
+      await pendingAction();
     } catch (err) {
-      showToast(`Wyjątek: ${err.message}`, 'error');
+      showToast(`Błąd: ${err.message}`, 'error');
+    } finally {
+      modalOpen = false;
+      pendingAction = null;
     }
+  }
+
+  function handleRefillHopper() {
+    const cap = status?.hopper_capacity_kg ?? 100;
+    openConfirm(
+      {
+        title: `Zasyp do pełna (${cap} kg)`,
+        message: `Czy na pewno zasypano zasobnik do pełna (${cap} kg)? Spowoduje to wyzerowanie licznika czasu pracy ślimaka i ustawi poziom opału na 100%.`,
+        confirmText: 'Tak, zresetuj zasobnik',
+        icon: '⛽',
+        danger: true,
+      },
+      async () => {
+        const ok = await client.refillHopper(cap);
+        if (ok) {
+          showToast(`Zresetowano licznik zasypu do 100% (${cap} kg)`, 'success');
+          await fetchStatus();
+        } else {
+          showToast('Błąd zapisu resetowania zasypu', 'error');
+        }
+      }
+    );
   }
 
   async function handleSetFeederMode(mode) {
@@ -218,6 +262,13 @@
   </button>
   <button
     class="nav-btn"
+    class:active={activeTab === 'maintenance'}
+    onclick={() => (activeTab = 'maintenance')}
+  >
+    🛠️ Obsługa & Konserwacja
+  </button>
+  <button
+    class="nav-btn"
     class:active={activeTab === 'combustion'}
     onclick={() => (activeTab = 'combustion')}
   >
@@ -273,6 +324,13 @@
       onRefillHopper={handleRefillHopper}
       onSetFeederMode={handleSetFeederMode}
       onSetMixerMode={handleSetMixerMode}
+    />
+  {:else if activeTab === 'maintenance'}
+    <MaintenanceTab
+      {status}
+      hopperCapacity={status?.hopper_capacity_kg ?? 100}
+      {client}
+      {showToast}
     />
   {:else if activeTab === 'combustion'}
     <ParamsTab
@@ -336,3 +394,15 @@
     </div>
   {/each}
 </div>
+
+<!-- Global Confirmation Modal -->
+<ConfirmModal
+  open={modalOpen}
+  title={modalTitle}
+  message={modalMessage}
+  confirmText={modalConfirmText}
+  icon={modalIcon}
+  danger={modalDanger}
+  onConfirm={handleConfirmModal}
+  onCancel={handleCancelModal}
+/>

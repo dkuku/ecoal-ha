@@ -116,6 +116,32 @@ async def test_api_ecoal_views(hass: HomeAssistant, hass_client_no_auth, mock_fu
     assert await resp.json() == {"success": True}
     mock_coordinator.async_stop_legionella.assert_awaited_with(reason="manual_cancel")
 
+    # 5d. Test POST /api/ecoal/control -> record_cleaning & extinguish
+    mock_coordinator.async_record_cleaning = AsyncMock(return_value=True)
+    mock_coordinator.async_extinguish_furnace = AsyncMock(return_value=True)
+    resp = await client.post("/api/ecoal/control", json={"action": "record_cleaning"})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.async_record_cleaning.assert_awaited_once()
+
+    resp = await client.post("/api/ecoal/control", json={"action": "extinguish"})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.async_extinguish_furnace.assert_awaited_once()
+
+    # 5e. Test POST /api/ecoal/control -> set_auto_mode & sync_clock
+    mock_coordinator.client.set_auto_mode = AsyncMock(return_value=True)
+    mock_coordinator.client.sync_clock = AsyncMock(return_value=True)
+    resp = await client.post("/api/ecoal/control", json={"action": "set_auto_mode", "value": True})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.client.set_auto_mode.assert_awaited_with(True)
+
+    resp = await client.post("/api/ecoal/control", json={"action": "sync_clock"})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.client.sync_clock.assert_awaited_once()
+
     # 6. Test error cases
     resp = await client.get("/api/ecoal/com")
     assert resp.status == 400

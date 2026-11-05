@@ -8,11 +8,15 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .client import PARAM_PROG_CO_TAB, SENSOR_NAMES, EcoalClient
 
 _LOGGER = logging.getLogger(__name__)
+
+MAINTENANCE_STORAGE_KEY = "ecoal_maintenance"
+MAINTENANCE_STORAGE_VERSION = 1
 
 
 class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -55,6 +59,23 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "saved_co_target": None,
             "saved_dhw_target": None,
         }
+        self._maintenance_store = Store[dict[str, Any]](
+            hass, MAINTENANCE_STORAGE_VERSION, MAINTENANCE_STORAGE_KEY
+        )
+        self._maintenance_data: dict[str, Any] = {
+            "last_cleaned_at": datetime.now().isoformat(),
+            "feeder_runtime_at_cleaning": 0.0,
+            "coal_burned_since_cleaning_kg": 0.0,
+            "days_since_cleaning": 0,
+            "heating_rate_c_per_min": None,
+            "avg_exhaust_heating": None,
+            "cleaning_required": False,
+            "cleaning_warning_reason": None,
+        }
+        self._maintenance_loaded: bool = False
+        self._last_heating_ts: float | None = None
+        self._last_boiler_temp: float | None = None
+        self._exhaust_heating_samples: list[float] = []
 
     async def async_refresh_extended_params(self) -> None:
         """Read extended furnace configuration parameters."""
@@ -226,6 +247,105 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         status["blower_correction"] = self.blower_correction
         status["exhaust_temp_regulator"] = self.exhaust_temp_regulator
         status["legionella"] = dict(self._legionella_state)
+
+        # 1. Maintenance & Cleaning Tracker
+        if not self._maintenance_loaded:
+            try:
+                stored = await self._maintenance_store.async_load()
+                if stored and isinstance(stored, dict):
+                    self._maintenance_data.update(stored)
+            except Exception as err:
+                _LOGGER.debug("Could not load maintenance data from store: %s", err)
+            self._maintenance_loaded = True
+
+        current_feeder_min = status.get("feeder_runtime_min")
+        if current_feeder_min is None:
+            fr_raw = status.get("feeder_runtime", 0)
+            current_feeder_min = (fr_raw / 60.0) if fr_raw else 0.0
+
+        base_feeder_min = float(self._maintenance_data.get("feeder_runtime_at_cleaning", 0.0) or 0.0)
+        burned = max(0.0, round((current_feeder_min - base_feeder_min) * 0.3666, 1))
+        self._maintenance_data["coal_burned_since_cleaning_kg"] = burned
+
+        last_cleaned_str = self._maintenance_data.get("last_cleaned_at")
+        days = 0
+        if last_cleaned_str:
+            try:
+                dt_clean = datetime.fromisoformat(last_cleaned_str)
+                days = max(0, (datetime.now() - dt_clean).days)
+            except Exception:
+                pass
+        self._maintenance_data["days_since_cleaning"] = days
+
+        # Heating rate calculation during active heating (heating == 1)
+        is_heating = bool(status.get("heating") == 1 or status.get("heating") is True)
+        b_temp = status.get("boiler_temp")
+        now_ts = datetime.now().timestamp()
+
+        if is_heating and isinstance(b_temp, (int, float)):
+            ex_temp = status.get("exhaust_temp")
+            if isinstance(ex_temp, (int, float)) and ex_temp > 40:
+                self._exhaust_heating_samples.append(float(ex_temp))
+                if len(self._exhaust_heating_samples) > 20:
+                    self._exhaust_heating_samples.pop(0)
+                self._maintenance_data["avg_exhaust_heating"] = round(
+                    sum(self._exhaust_heating_samples) / len(self._exhaust_heating_samples), 1
+                )
+
+            if self._last_heating_ts is not None and self._last_boiler_temp is not None:
+                delta_sec = now_ts - self._last_heating_ts
+                if 20 <= delta_sec <= 180:
+                    delta_t = b_temp - self._last_boiler_temp
+                    if delta_t > 0:
+                        rate = round((delta_t / delta_sec) * 60.0, 2)
+                        self._maintenance_data["heating_rate_c_per_min"] = rate
+            self._last_heating_ts = now_ts
+            self._last_boiler_temp = b_temp
+        else:
+            self._last_heating_ts = None
+            self._last_boiler_temp = None
+
+        # Cleaning warning evaluation
+        reasons = []
+        avg_ex = self._maintenance_data.get("avg_exhaust_heating")
+        if avg_ex and avg_ex > 135.0:
+            reasons.append(f"Wysoka temp. spalin ({avg_ex}°C > 135°C)")
+        if burned > 200.0:
+            reasons.append(f"Spalono {burned} kg węgla (> 200 kg)")
+        if days >= 25:
+            reasons.append(f"{days} dni od czyszczenia kotła")
+        hrate = self._maintenance_data.get("heating_rate_c_per_min")
+        if hrate is not None and hrate < 0.20 and burned > 50.0:
+            reasons.append(f"Niska prędkość grzania ({hrate}°C/min)")
+
+        self._maintenance_data["cleaning_required"] = len(reasons) > 0
+        self._maintenance_data["cleaning_warning_reason"] = " | ".join(reasons) if reasons else None
+
+        status["maintenance"] = dict(self._maintenance_data)
+        status["coal_burned_since_cleaning_kg"] = burned
+        status["days_since_cleaning"] = days
+        status["heating_rate_c_per_min"] = self._maintenance_data.get("heating_rate_c_per_min")
+        status["cleaning_required"] = self._maintenance_data["cleaning_required"]
+        status["cleaning_warning_reason"] = self._maintenance_data["cleaning_warning_reason"]
+
+        # 2. Cool-down pump cutoff protection when in Manual mode / Extinguished:
+        if status.get("auto_mode") is False:
+            if isinstance(b_temp, (int, float)) and b_temp < 40.0:
+                if status.get("ch_pump") is True:
+                    _LOGGER.info(
+                        "Boiler in manual mode cooled to %s°C (< 40°C). Automatically cutting off CH pump.",
+                        b_temp,
+                    )
+                    await self.client.set_switch(0x0D, False)
+                    status["ch_pump"] = False
+                if status.get("dhw_pump") is True:
+                    _LOGGER.info(
+                        "Boiler in manual mode cooled to %s°C (< 40°C). Automatically cutting off DHW pump.",
+                        b_temp,
+                    )
+                    await self.client.set_switch(0x0E, False)
+                    status["dhw_pump"] = False
+
         return status
 
     @property
@@ -387,3 +507,55 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:
             _LOGGER.exception("Error in anti-legionella monitoring loop: %s", err)
             await self.async_stop_legionella(reason="error")
+
+    async def async_record_cleaning(self) -> bool:
+        """Record boiler cleaning event, reset coal counter and clear warnings."""
+        current_feeder_min = 0.0
+        if self.data:
+            current_feeder_min = self.data.get("feeder_runtime_min") or (
+                self.data.get("feeder_runtime", 0) / 60.0
+            )
+        self._maintenance_data = {
+            "last_cleaned_at": datetime.now().isoformat(),
+            "feeder_runtime_at_cleaning": current_feeder_min,
+            "coal_burned_since_cleaning_kg": 0.0,
+            "days_since_cleaning": 0,
+            "heating_rate_c_per_min": None,
+            "avg_exhaust_heating": None,
+            "cleaning_required": False,
+            "cleaning_warning_reason": None,
+        }
+        self._exhaust_heating_samples.clear()
+        try:
+            await self._maintenance_store.async_save(self._maintenance_data)
+        except Exception as err:
+            _LOGGER.warning("Could not persist maintenance data: %s", err)
+
+        if self.data is not None:
+            self.data["maintenance"] = dict(self._maintenance_data)
+            self.data["coal_burned_since_cleaning_kg"] = 0.0
+            self.data["days_since_cleaning"] = 0
+            self.data["cleaning_required"] = False
+            self.data["cleaning_warning_reason"] = None
+            self.async_update_listeners()
+            await self.async_request_refresh()
+        return True
+
+    async def async_extinguish_furnace(self) -> bool:
+        """Safely extinguish the furnace: stop auto mode, blower, feeder, and protect pumps."""
+        _LOGGER.info("Initiating safe furnace extinguishing sequence")
+        # 1. Turn off auto mode
+        ok = await self.client.set_auto_mode(False)
+        # 2. Stop blower (OUT_DMUCHAWA 0x0B) and feeder (OUT_PODAJNIK 0x0C)
+        await self.client.set_switch(0x0B, False)
+        await self.client.set_switch(0x0C, False)
+
+        # 3. Check boiler temperature:
+        b_temp = self.data.get("boiler_temp") if self.data else None
+        if isinstance(b_temp, (int, float)) and b_temp < 40.0:
+            await self.client.set_switch(0x0D, False)  # OUT_POMPA_CO
+            await self.client.set_switch(0x0E, False)  # OUT_POMPA_CWU
+        # If boiler is >= 40.0°C, CH pump stays running to safely absorb heat,
+        # and will automatically be cut off in _async_update_data once it drops below 40°C.
+        await self.async_request_refresh()
+        return ok

@@ -217,6 +217,68 @@
     const val = parseInt(e.target.value, 10);
     onSetMixerMode(val);
   }
+
+  // Maintenance & Cleaning tracker
+  let maintenance = $derived(status?.maintenance || {});
+  let daysSinceCleaning = $derived(status?.days_since_cleaning ?? maintenance?.days_since_cleaning ?? 0);
+  let coalBurnedSinceCleaning = $derived(status?.coal_burned_since_cleaning_kg ?? maintenance?.coal_burned_since_cleaning_kg ?? 0.0);
+  let heatingRate = $derived(status?.heating_rate_c_per_min ?? maintenance?.heating_rate_c_per_min);
+  let avgExhaustHeating = $derived(maintenance?.avg_exhaust_heating);
+  let cleaningRequired = $derived(Boolean(status?.cleaning_required ?? maintenance?.cleaning_required));
+  let cleaningWarningReason = $derived(status?.cleaning_warning_reason || maintenance?.cleaning_warning_reason);
+  let isRecordingCleaning = $state(false);
+  let isExtinguishing = $state(false);
+
+  function formatCleaningDate(isoStr) {
+    if (!isoStr) return 'Brak wpisu';
+    try {
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return 'Brak wpisu';
+      const day = d.getDate().toString().padStart(2, '0');
+      const mon = (d.getMonth() + 1).toString().padStart(2, '0');
+      const h = d.getHours().toString().padStart(2, '0');
+      const min = d.getMinutes().toString().padStart(2, '0');
+      return `${day}.${mon}.${d.getFullYear()} ${h}:${min}`;
+    } catch {
+      return 'Brak wpisu';
+    }
+  }
+
+  async function handleRecordCleaning() {
+    if (!client || isRecordingCleaning) return;
+    if (!confirm('Czy na pewno chcesz oznaczyć kocioł jako wyczyszczony? Spowoduje to wyzerowanie licznika spalonego węgla od czyszczenia.')) return;
+    isRecordingCleaning = true;
+    try {
+      const ok = await client.recordCleaning();
+      if (ok) {
+        showToast('Zapisano czyszczenie kotła i zresetowano licznik spalonego węgla', 'success');
+      } else {
+        showToast('Błąd zapisu czyszczenia kotła', 'error');
+      }
+    } catch (err) {
+      showToast(`Błąd: ${err.message}`, 'error');
+    } finally {
+      isRecordingCleaning = false;
+    }
+  }
+
+  async function handleExtinguish() {
+    if (!client || isExtinguishing) return;
+    if (!confirm('Czy na pewno chcesz bezpiecznie wygasić kocioł? Wyłączy to tryb AUTO (zatrzyma podajnik i dmuchawę), a pompa CO wyłączy się automatycznie po schłodzeniu do 40°C.')) return;
+    isExtinguishing = true;
+    try {
+      const ok = await client.extinguishFurnace();
+      if (ok) {
+        showToast('Rozpoczęto bezpieczne wygaszanie kotła (pompa CO stop poniżej 40°C)', 'info');
+      } else {
+        showToast('Błąd procedury wygaszania', 'error');
+      }
+    } catch (err) {
+      showToast(`Błąd: ${err.message}`, 'error');
+    } finally {
+      isExtinguishing = false;
+    }
+  }
 </script>
 
 <div class="dashboard-grid">
@@ -333,7 +395,11 @@
     <div class="metric-card">
       <div class="card-top">
         <span class="card-title">🔥 Kocioł CO</span>
-        {#if status?.co_lowered_active}
+        {#if status?.auto_mode === false}
+          <span class="badge-extinguished" title="Kocioł w trybie ręcznym / wygaszania. Pompa CO wyłączy się automatycznie przy <40°C">
+            ❄️ Wygaszanie / Manual
+          </span>
+        {:else if status?.co_lowered_active}
           <span class="badge-lowered" title="Aktywne obniżenie temperatury CO: -{status?.co_lowered_amount || 10}°C (bazowa: {(status?.target_boiler_temp || 0) + (status?.co_lowered_amount || 10)}°C)">
             🌙 Obniżona (-{status?.co_lowered_amount || 10}°C)
           </span>
@@ -372,6 +438,17 @@
         <button class="step-btn" onclick={() => onStepSetpoint('co', -1)} aria-label="Zmniejsz zadaną CO">-</button>
         <span class="step-target-display">Zmień zadaną</span>
         <button class="step-btn" onclick={() => onStepSetpoint('co', 1)} aria-label="Zwiększ zadaną CO">+</button>
+      </div>
+
+      <div style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.65rem; display: flex; justify-content: flex-end;">
+        <button
+          class="btn-extinguish"
+          onclick={handleExtinguish}
+          disabled={isExtinguishing || status?.auto_mode === false}
+          title="Bezpieczne wygaszenie: wyłącza tryb AUTO (zatrzymuje podajnik i dmuchawę), pompa CO wyłączy się automatycznie poniżej 40°C"
+        >
+          {status?.auto_mode === false ? '❄️ Kocioł wygaszany' : (isExtinguishing ? 'Wygaszanie...' : '❄️ Bezpiecznie wygaś')}
+        </button>
       </div>
     </div>
 
@@ -574,6 +651,68 @@
         </span>
         <span class="actuator-tag" class:on={!!status?.z1_pump}>Cyrkulacja</span>
       </div>
+    </div>
+
+    <!-- Card: Czystość Wymiennika & Sprawność -->
+    <div class="metric-card">
+      <div class="card-top">
+        <span class="card-title">🧹 Czystość & Sprawność</span>
+        {#if cleaningRequired}
+          <span class="badge-clean-warn" title={cleaningWarningReason || 'Wymagane czyszczenie wymiennika'}>
+            ⚠️ Wyczyść kocioł
+          </span>
+        {:else}
+          <span class="badge-clean-ok">
+            ✓ Wymiennik czysty
+          </span>
+        {/if}
+      </div>
+
+      {#if cleaningRequired && cleaningWarningReason}
+        <div style="font-size: 0.76rem; color: #fca5a5; background: rgba(239, 68, 68, 0.12); padding: 0.35rem 0.55rem; border-radius: var(--radius-sm); margin-bottom: 0.5rem; border-left: 3px solid #ef4444;">
+          {cleaningWarningReason}
+        </div>
+      {/if}
+
+      <div class="cleaning-metrics-grid">
+        <div class="cleaning-stat-item">
+          <span class="cleaning-stat-label">Dni od czyszczenia</span>
+          <span class="cleaning-stat-value">{daysSinceCleaning} d</span>
+        </div>
+        <div class="cleaning-stat-item">
+          <span class="cleaning-stat-label">Spalony opał</span>
+          <span class="cleaning-stat-value">{coalBurnedSinceCleaning} kg</span>
+        </div>
+        <div class="cleaning-stat-item">
+          <span class="cleaning-stat-label">Śr. spaliny (grzanie)</span>
+          <span class="cleaning-stat-value">
+            {avgExhaustHeating != null ? avgExhaustHeating.toFixed(1) + '°C' : '--'}
+          </span>
+        </div>
+        <div class="cleaning-stat-item">
+          <span class="cleaning-stat-label">Tempo grzania</span>
+          <span class="cleaning-stat-value">
+            {heatingRate != null ? heatingRate.toFixed(2) : '--'}
+            <small style="font-size: 0.65rem; color: var(--text-muted);">°C/min</small>
+          </span>
+        </div>
+      </div>
+
+      <button
+        class="btn-record-cleaning"
+        onclick={handleRecordCleaning}
+        disabled={isRecordingCleaning}
+        title="Zapisuje dzisiejszą datę jako datę czyszczenia i resetuje licznik spalonego węgla"
+      >
+        <span class="btn-icon">🧹</span>
+        <span class="btn-text">{isRecordingCleaning ? 'Zapisywanie...' : 'Oznacz wyczyszczenie kotła'}</span>
+      </button>
+
+      {#if maintenance?.last_cleaned_at}
+        <div style="font-size: 0.7rem; color: var(--text-muted); text-align: center; margin-top: 0.45rem;">
+          Ostatnio: {formatCleaningDate(maintenance.last_cleaned_at)}
+        </div>
+      {/if}
     </div>
 
     <!-- Card 5: Temperatury Pomocnicze -->

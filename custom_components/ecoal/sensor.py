@@ -229,6 +229,31 @@ SENSOR_DESCRIPTIONS: tuple[EcoalSensorDescription, ...] = (
         state_class=SensorStateClass.MEASUREMENT,
         icon="mdi:transfer",
     ),
+    EcoalSensorDescription(
+        key="coal_burned_since_cleaning",
+        value_key="coal_burned_since_cleaning_kg",
+        translation_key="coal_burned_since_cleaning",
+        device_class=SensorDeviceClass.WEIGHT,
+        native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:scale",
+    ),
+    EcoalSensorDescription(
+        key="days_since_cleaning",
+        value_key="days_since_cleaning",
+        translation_key="days_since_cleaning",
+        native_unit_of_measurement="dni",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:calendar-clock",
+    ),
+    EcoalSensorDescription(
+        key="heating_rate",
+        value_key="heating_rate_c_per_min",
+        translation_key="heating_rate",
+        native_unit_of_measurement="°C/min",
+        state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:speedometer",
+    ),
 )
 
 # Diagnostic sensors for modes and flags (always present)

@@ -22,7 +22,8 @@
       "is_summer": { "name": "Tryb letni" },
       "z1_pump": { "name": "Pompa cyrkulacyjna CWU" },
       "valve_3d": { "name": "Zawór trójdrogowy" },
-      "cwu_mixer": { "name": "Zawór mieszający CWU" }
+      "cwu_mixer": { "name": "Zawór mieszający CWU" },
+      "cleaning_required": { "name": "Wymagane czyszczenie wymiennika" }
     },
     "button": {
       "refill_hopper": { "name": "Zasypano zasobnik (100%)" },
@@ -31,7 +32,9 @@
       "force_co_lowered": { "name": "Wymuś obniżenie CO (2h)" },
       "force_co_comfort": { "name": "Wymuś komfort CO (2h)" },
       "trigger_legionella": { "name": "Dezynfekcja Legionelli (30 min)" },
-      "cancel_legionella": { "name": "Anuluj dezynfekcję Legionelli" }
+      "cancel_legionella": { "name": "Anuluj dezynfekcję Legionelli" },
+      "record_cleaning": { "name": "Oznacz wyczyszczenie kotła" },
+      "extinguish": { "name": "Bezpieczne wygaszenie kotła" }
     },
     "climate": {
       "heating": { "name": "Ogrzewanie" },
@@ -93,7 +96,10 @@
       "controller_datetime": { "name": "Zegar sterownika" },
       "fuel_load_date": { "name": "Data zasypania" },
       "estimated_empty_date": { "name": "Przewidywany koniec opału" },
-      "inputs": { "name": "Wejścia" }
+      "inputs": { "name": "Wejścia" },
+      "coal_burned_since_cleaning": { "name": "Węgiel spalony od czyszczenia" },
+      "days_since_cleaning": { "name": "Dni od czyszczenia" },
+      "heating_rate": { "name": "Prędkość grzania kotła" }
     },
     "switch": {
       "ch_pump": { "name": "Pompa CO" },

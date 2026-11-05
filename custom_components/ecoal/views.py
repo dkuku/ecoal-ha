@@ -173,6 +173,16 @@ class EcoalControlView(HomeAssistantView):
                 )
             elif action == "stop_legionella":
                 success = await coordinator.async_stop_legionella(reason="manual_cancel")
+            elif action == "record_cleaning":
+                success = await coordinator.async_record_cleaning()
+            elif action == "extinguish":
+                success = await coordinator.async_extinguish_furnace()
+            elif action == "set_auto_mode":
+                if value is None:
+                    return self.json({"error": "Missing value"}, status_code=400)
+                success = await coordinator.client.set_auto_mode(bool(value))
+            elif action == "sync_clock":
+                success = await coordinator.client.sync_clock()
             else:
                 return self.json({"error": f"Unknown action: {action}"}, status_code=400)
         except (ValueError, TypeError) as err:

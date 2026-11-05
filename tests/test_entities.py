@@ -226,6 +226,36 @@ async def test_all_ecoal_entities(hass: HomeAssistant, furnace_server: EcoalMock
     assert sw_legionella.state == STATE_OFF
     await hass.async_block_till_done()
 
+    # 7b. Test Cleaning & Extinguish entities
+    btn_clean = hass.states.get("button.ecoal_mark_boiler_as_cleaned")
+    assert btn_clean is not None
+    await hass.services.async_call(
+        "button",
+        "press",
+        {ATTR_ENTITY_ID: "button.ecoal_mark_boiler_as_cleaned"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    btn_extinguish = hass.states.get("button.ecoal_safe_boiler_extinguishing")
+    assert btn_extinguish is not None
+    await hass.services.async_call(
+        "button",
+        "press",
+        {ATTR_ENTITY_ID: "button.ecoal_safe_boiler_extinguishing"},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+
+    sensor_clean_days = hass.states.get("sensor.ecoal_days_since_cleaning")
+    assert sensor_clean_days is not None
+
+    sensor_clean_coal = hass.states.get("sensor.ecoal_coal_burned_since_cleaning")
+    assert sensor_clean_coal is not None
+
+    bin_clean = hass.states.get("binary_sensor.ecoal_boiler_cleaning_required")
+    assert bin_clean is not None
+
     # 8. Test unload entry
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()

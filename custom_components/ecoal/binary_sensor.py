@@ -51,6 +51,13 @@ BINARY_SENSOR_DESCRIPTIONS: tuple[EcoalBinarySensorDescription, ...] = (
         icon="mdi:weather-sunny",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    EcoalBinarySensorDescription(
+        key="cleaning_required",
+        value_key="cleaning_required",
+        translation_key="cleaning_required",
+        device_class=BinarySensorDeviceClass.PROBLEM,
+        icon="mdi:broom",
+    ),
 )
 
 # Extra output state sensors - disabled by default, no manual control PARAM known
@@ -125,3 +132,14 @@ class EcoalBinarySensor(CoordinatorEntity[EcoalCoordinator], BinarySensorEntity)
         if self.coordinator.data is None:
             return None
         return self.coordinator.data.get(self.entity_description.value_key)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        if self.entity_description.key == "cleaning_required" and self.coordinator.data:
+            return {
+                "reason": self.coordinator.data.get("cleaning_warning_reason"),
+                "coal_burned_kg": self.coordinator.data.get("coal_burned_since_cleaning_kg"),
+                "days_since_cleaning": self.coordinator.data.get("days_since_cleaning"),
+                "heating_rate": self.coordinator.data.get("heating_rate_c_per_min"),
+            }
+        return None

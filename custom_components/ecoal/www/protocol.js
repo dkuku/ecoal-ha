@@ -125,6 +125,18 @@ export function buildAckAlarmsCmd() {
   return buildFrame(0x05, 0x00, 9); // CFG_ACK_ALARM = 9
 }
 
+export function buildSyncClockCmd(now = new Date()) {
+  const data = [
+    Math.max(0, now.getFullYear() - 2000) & 0xff,
+    (now.getMonth() + 1) & 0xff,
+    now.getDate() & 0xff,
+    now.getHours() & 0xff,
+    now.getMinutes() & 0xff,
+    now.getSeconds() & 0xff,
+  ];
+  return buildFrame(0x05, 0x00, 6, data); // CFG_SET_DATE = 6
+}
+
 /**
  * Decodes 42-byte weekly schedule payload into array of 7 day strings (48 chars of '0' or '1').
  */

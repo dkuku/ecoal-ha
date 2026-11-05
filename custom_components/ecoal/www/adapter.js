@@ -14,6 +14,7 @@ import {
   buildReadParamCmd,
   buildRefillHopperCmd,
   buildStatusCmd,
+  buildSyncClockCmd,
   buildWriteParamCmd,
   buildWriteProgramCmd,
   decodeWeeklyProgram,
@@ -403,8 +404,52 @@ export class EcoalClient {
     return true;
   }
 
+  async extinguishFurnace() {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "extinguish" }),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    return await this.setAutoMode(false);
+  }
+
+  async recordCleaning() {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "record_cleaning" }),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    return true;
+  }
+
   async ackAlarms() {
     const cmd = buildAckAlarmsCmd();
+    const raw = await this.adapter.sendHexCmd(cmd);
+    return raw && (raw[2] === 6 || raw[2] === 21);
+  }
+
+  async syncClock() {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "sync_clock" }),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    const cmd = buildSyncClockCmd();
     const raw = await this.adapter.sendHexCmd(cmd);
     return raw && (raw[2] === 6 || raw[2] === 21);
   }

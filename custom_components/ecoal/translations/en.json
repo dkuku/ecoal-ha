@@ -22,7 +22,8 @@
       "is_summer": { "name": "Summer mode" },
       "z1_pump": { "name": "DHW circulation pump" },
       "valve_3d": { "name": "3-way valve" },
-      "cwu_mixer": { "name": "CWU mixer valve" }
+      "cwu_mixer": { "name": "CWU mixer valve" },
+      "cleaning_required": { "name": "Boiler cleaning required" }
     },
     "button": {
       "refill_hopper": { "name": "Refill hopper (100%)" },
@@ -31,7 +32,9 @@
       "force_co_lowered": { "name": "Force lowered CO temp (2h)" },
       "force_co_comfort": { "name": "Force comfort CO temp (2h)" },
       "trigger_legionella": { "name": "Disinfect Legionella (30 min)" },
-      "cancel_legionella": { "name": "Cancel Legionella disinfection" }
+      "cancel_legionella": { "name": "Cancel Legionella disinfection" },
+      "record_cleaning": { "name": "Mark boiler as cleaned" },
+      "extinguish": { "name": "Safe boiler extinguishing" }
     },
     "climate": {
       "heating": { "name": "Heating" },
@@ -93,7 +96,10 @@
       "controller_datetime": { "name": "Controller clock" },
       "fuel_load_date": { "name": "Fuel load date" },
       "estimated_empty_date": { "name": "Estimated empty date" },
-      "inputs": { "name": "Inputs" }
+      "inputs": { "name": "Inputs" },
+      "coal_burned_since_cleaning": { "name": "Coal burned since cleaning" },
+      "days_since_cleaning": { "name": "Days since cleaning" },
+      "heating_rate": { "name": "Boiler heating rate" }
     },
     "switch": {
       "ch_pump": { "name": "CH pump" },

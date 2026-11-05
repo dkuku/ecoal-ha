@@ -69,6 +69,18 @@ BUTTON_DESCRIPTIONS: tuple[EcoalButtonDescription, ...] = (
         icon="mdi:close-circle-outline",
         press_fn=lambda coord: coord.async_stop_legionella(reason="manual_cancel"),
     ),
+    EcoalButtonDescription(
+        key="record_cleaning",
+        translation_key="record_cleaning",
+        icon="mdi:broom",
+        press_fn=lambda coord: coord.async_record_cleaning(),
+    ),
+    EcoalButtonDescription(
+        key="extinguish",
+        translation_key="extinguish",
+        icon="mdi:fire-off",
+        press_fn=lambda coord: coord.async_extinguish_furnace(),
+    ),
 )
 
 
