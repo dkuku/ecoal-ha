@@ -24,5 +24,6 @@
   - Fixed by setting `PARAM 17` (Target DHW) to **50°C** (maintaining Target CO at 53°C, $\Delta T \ge 3^\circ\text{C}$).
   - Boiler immediately entered holding mode (`heating: 0`) with 45-minute feeder pauses (`PARAM 13`).
 - **2026-11-04**: Capacity officially calibrated to **100 kg** (4 bags). Holding mode analysis confirmed safe ember preservation for >5h without feed. Added thermal disinfection (Legionella) UI controls & HA entities.
+- **2026-11-05**: Fixed overheating in Kawalerka (23.9°C) & eliminated risky manual boiler shutdown cycles. Lowered Target CO (`PARAM 40`) from 56°C to **50°C**, set lowered CO delta (`PARAM 41`) to **5°C** (lowered target 45°C), tuned CO pump cycling to 4m run / 20m pause (`PARAM 70/71`). Added seasonal cold-weather guide in `docs/furnace_memory.md`.
 - **Memory File**: See [`docs/furnace_memory.md`](file:///home/kuku/Projects/ogniwo-furnace-ha/docs/furnace_memory.md) for step-by-step verification instructions, safety architecture (STB / WDT fail-safe), and hardware emulation rules (ESP32 vs Linux SBC for 1-Wire).
 - **Technical Research Notes**: See [`docs/furnace_tuning_and_algorithms.md`](file:///home/kuku/Projects/ogniwo-furnace-ha/docs/furnace_tuning_and_algorithms.md).

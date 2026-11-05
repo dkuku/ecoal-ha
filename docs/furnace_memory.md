@@ -76,6 +76,49 @@ Plik pamięci trwałej do analizy porównawczej po kilku dniach pracy kotła.
 
 ---
 
+## 4.1. Optymalizacja Temperatury i Ochrony Przed Przegrzewaniem (2026-11-05)
+
+### Diagnoza problemu (przegrzewanie Kawalerki do 23.9°C):
+- Przy pogodzie jesiennej ($T_{zew} \approx 7\text{--}11^\circ\text{C}$) kocioł pracował z nastawą **56°C** (z bezwładnością do 63°C). Kaloryfery pompowały gigantyczną moc do pomieszczeń.
+- Użytkownik ręcznie gasił kocioł przełącznikiem `switch.ecoal_auto_mode` (MANUAL OFF) na 5–6 godzin dziennie i w nocy, gdy temperatura w Kawalerce przekraczała 23.5°C.
+- Skutek uboczny: kocioł stygł do 29–37°C, ryzykując wygaszenie żaru oraz pracując w strefie agresywnej kondensacji spalin przy ponownym rozruchu.
+
+### Wdrożone nastawy w sterowniku eCoal (2026-11-05):
+| Rejestr | Parametr | Wartość przed | Wartość nowa | Cel zmiany |
+| :--- | :--- | :--- | :--- | :--- |
+| `PARAM 40` | **Zadana temp. kotła CO** | `56°C` | **`50°C`** | Spadek emisji grzejników o ~25-30%, natychmiastowe przejście w podtrzymanie |
+| `PARAM 41` | **Obniżenie temp. CO** | `10°C` | **`5°C`** | Temperatura obniżona to bezpieczne **`45°C`** (powyżej punktu rosy) |
+| `PARAM 70` | **Czas pracy pompy CO** | `5 min` | **`4 min`** | Krótsza dawka gorącej wody w grzejniki |
+| `PARAM 71` | **Czas postoju pompy CO** | `15 min` | **`20 min`** | Dłuższy postój ogranicza oddawanie ciepła do pomieszczeń |
+| `PARAM 17` | **Zadana temp. CWU** | `45°C` | `45°C` | Zachowana delta $\Delta T = 5^\circ\text{C}$ (50°C - 45°C) gwarantująca grzanie wody |
+
+---
+
+## 4.2. Przewodnik Sezonowy: Co zmienić, kiedy zrobi się chłodniej na zewnątrz?
+
+Gdy nadejdą chłodniejsze dni i w Kawalerce temperatura spadnie poniżej komfortu (< 21.0–21.5°C), zmieniaj parametry **stopniowo w poniższej kolejności**:
+
+### Krok 1: Umiarkowany chłód na zewnątrz ($T_{zew} = 2\text{--}7^\circ\text{C}$)
+1. **Skróć postój pompy CO (`PARAM 71`):**
+   - Zmień `PARAM 71` z **20 min** na **15 min** (lub **10 min**).
+   - Kaloryfery będą częściej dogrzewane mniejszymi porcjami ciepła.
+2. **Podnieś zadaną CO (`PARAM 40`):**
+   - Zmień z **50°C** na **`53°C`**.
+   - Obniżenie CO (`PARAM 41`) ustaw na **`6°C`** (aby zadana obniżona wynosiła 47°C).
+
+### Krok 2: Mrozy i zima ($T_{zew} < 0^\circ\text{C}$)
+1. **Zadana temp. kotła CO (`PARAM 40`):**
+   - Zwiększ do **`56°C`** (przy mrozach poniżej -10°C: **`60°C`**).
+2. **Zadana temp. CWU (`PARAM 17`):**
+   - Zwiększ z 45°C do **`48°C` – `50°C`** (zimą woda z wodociągu ma 5°C i szybciej wychładza bojler).
+3. **Praca ciągła pompy CO (`PARAM 69`):**
+   - Zmień `PARAM 69` z `1` (cykliczna) na **`0` (ciągła)**.
+   - W mroźne dni woda w instalacji powinna krążyć bez przerw, aby równomiernie ogrzewać cały dom, nie dopuścić do zamarzania rur przy ścianach zewnętrznych i utrzymać wysoką temperaturę powrotu kotła.
+   - Temperaturą w poszczególnych pokojach sterują wtedy bezpośrednio głowice termostatyczne na grzejnikach.
+
+
+---
+
 ## 5. Procedura Analizy za Parę Dni (Checklist do Wykonania)
 
 Gdy wrócimy do tematu za parę dni, należy wykonać następujące kroki:
