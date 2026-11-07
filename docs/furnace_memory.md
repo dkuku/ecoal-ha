@@ -180,3 +180,13 @@ W przypadku zawieszenia oprogramowania układowego, awarii sieci lub błędu skr
   - **ESP32:** Dedykowany mikrokontroler (Core 1 w pętli `OneWireHub.poll()`, Core 0 dla Wi-Fi/MQTT) realizuje to bez zakłóceń.
   - **Lichee Pi / Linux SBC:** Brak możliwości stabilnej emulacji programowej z poziomu GPIO w Linuksie z powodu jitteru planisty zadań (scheduler latency) i braku modułu slave w jądrze.
 
+---
+
+## 7. Ostatnie Modyfikacje Konfiguracyjne
+
+### 2026-11-07 (Eliminacja wychładzania kotła w podtrzymaniu):
+- **Problem**: Pompa CO pracowała nieustannie 24/7 (`state: on` non-stop). Po wejściu w podtrzymanie obieg CO w 10–15 minut wychładzał kocioł z 50°C do 49°C, zmuszając go do ciągłego ponownego rozpalania.
+- **Przyczyna**: `PARAM 78` (regulator pokojowy) był ustawiony na `0` (wyłączony), przez co sterownik eCoal ignorował fakt, że w domu jest 22.3°C (zadana 19°C), oraz ignorował nastawę pracy cyklicznej `PARAM 69=1` (4m praca / 20m postój).
+- **Rozwiązanie**: Przestawiono `PARAM 78` na **`1`** (aktywny programator/regulator pokojowy).
+- **Efekt**: Sterownik natychmiast uznał pomieszczenie za dogrzane i aktywował cykliczną przerwę pompy CO (4 minuty pracy / 20 minut postoju). Wymiennik kotła w podtrzymaniu przestał być wysysany z ciepła, a kocioł może bezpiecznie utrzymywać temperaturę przez ponad godzinę bez podawania opału.
+
