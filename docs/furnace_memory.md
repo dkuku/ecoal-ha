@@ -190,3 +190,38 @@ W przypadku zawieszenia oprogramowania układowego, awarii sieci lub błędu skr
 - **Rozwiązanie**: Przestawiono `PARAM 78` na **`1`** (aktywny programator/regulator pokojowy).
 - **Efekt**: Sterownik natychmiast uznał pomieszczenie za dogrzane i aktywował cykliczną przerwę pompy CO (4 minuty pracy / 20 minut postoju). Wymiennik kotła w podtrzymaniu przestał być wysysany z ciepła, a kocioł może bezpiecznie utrzymywać temperaturę przez ponad godzinę bez podawania opału.
 
+---
+
+## 8. Rejestr Zużycia Węgla i Porównanie Efektywności (Benchmark 2026-10 / 2026-11)
+
+### 8.1. Zestawienie dobowe z bazy PostgreSQL (Home Assistant)
+Przelicznik kalibracyjny: **0.3666 kg/min** czasu pracy ślimaka.
+
+| Data | Czas pracy ślimaka | Spalony opał [kg] | Śr. temp. zewn. | Tryb / Warunki pracy |
+| :---: | :---: | :---: | :---: | :--- |
+| **2026-10-28** | 54.6 min | **20.02 kg** | +8.2°C | Praca jesienna, zadana CO 53°C |
+| **2026-10-29** | 77.7 min | **28.48 kg** | +10.4°C | Praca ciągła, dogrzewanie domu |
+| **2026-10-30** | 68.9 min | **25.26 kg** | +11.0°C | Praca ciągła, dogrzewanie domu |
+| **2026-11-02** | 42.7 min | **15.65 kg** | +9.2°C | Ograniczony pobór ciepła |
+| **2026-11-03** | 80.5 min | **29.51 kg** | +8.8°C | Postój manualny 5h w dzień |
+| **2026-11-04** | 70.5 min | **25.85 kg** | +8.0°C | **Zasyp do pełna 100 kg** (reset licznika o 14:16, postój 6h 18m) |
+| **2026-11-05** | 58.5 min | **21.45 kg** | +7.3°C | **Dwa postoje manualne**: noc 5h 19m + dzień 4h 35m |
+| **2026-11-06** | 76.4 min | **28.01 kg** | +7.5°C | **Praca ciągła AUTO**: pompa CO chodziła 24/7 non-stop |
+| **2026-11-07** | *w trakcie* | **~13.16 kg** (do 16:30) | +7.6°C | **Przełom po włączeniu `PARAM 78 = 1` o 08:10** |
+
+### 8.2. Bezpośredni wpływ zatrzymania pompy CO (Porównanie 2026-11-07)
+Dokładne rozbicie dzisiejszego zużycia przed i po aktywacji przerw pompy CO (`PARAM 78 = 1`):
+
+| Okres | Godziny | Czas ślimaka | Węgiel [kg] | Średnie tempo spalania | Stan pompy CO |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Noc (przed zmianą)** | 00:00 – 08:10 (8.17 h) | 25.0 min | **9.17 kg** | **1.12 kg/h** | Pompa CO tłoczyła 24/7 (kocioł stygł w 10 min) |
+| **Dzień (po zmianie)** | 08:10 – 16:30 (8.33 h) | 11.0 min | **4.03 kg** | **0.48 kg/h** | **Pompa CO w cyklu 4m praca / 20m postój** |
+
+> **Wynik:** Tempo spalania węgla spadło z **1.12 kg/h do 0.48 kg/h (spadek o 57%)**! Kocioł w podtrzymaniu przestał oddawać ciepło do grzejników i utrzymuje stabilną temperaturę.
+
+### 8.3. Stan zasobnika na dzień 2026-11-07 16:30
+- Licznik pracy ślimaka od zasypu 100 kg (04.11 14:16): **203.4 minuty**.
+- Łącznie spalono z zasypu 100 kg: $203.4 \times 0.3666 = \mathbf{74.56\text{ kg}}$.
+- **Pozostało w zasobniku:** $100.0 - 74.56 = \mathbf{25.44\text{ kg}}$ (ok. 1 pełny worek 25 kg).
+
+
