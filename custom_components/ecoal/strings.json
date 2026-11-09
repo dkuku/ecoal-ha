@@ -44,7 +44,9 @@
     "number": {
       "hopper_capacity": { "name": "Hopper capacity" },
       "feeder_max_runtime": { "name": "Feeder max runtime" },
-      "blower_correction": { "name": "Blower power correction" }
+      "blower_correction": { "name": "Blower power correction" },
+      "room_day_temp": { "name": "Target room day temperature" },
+      "room_night_temp": { "name": "Target room night temperature" }
     },
     "select": {
       "feeder_mode": {

@@ -95,13 +95,33 @@ async def test_api_ecoal_views(hass: HomeAssistant, hass_client_no_auth, mock_fu
     assert result == {"success": True}
     mock_coordinator.async_set_mixer_mode.assert_awaited_with(1)
 
-    # 5b. Test POST /api/ecoal/control -> force_co_mode
+    # Test POST /api/ecoal/control -> set_room_day_temp & set_room_night_temp
+    mock_coordinator.async_set_room_day_temp = AsyncMock(return_value=True)
+    mock_coordinator.async_set_room_night_temp = AsyncMock(return_value=True)
+    resp = await client.post("/api/ecoal/control", json={"action": "set_room_day_temp", "value": 21.5})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.async_set_room_day_temp.assert_awaited_with(21.5)
+
+    resp = await client.post("/api/ecoal/control", json={"action": "set_room_night_temp", "value": 19.5})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.async_set_room_night_temp.assert_awaited_with(19.5)
+
+    # 5b. Test POST /api/ecoal/control -> force_co_mode & force_schedule_mode
     mock_coordinator.async_force_co_mode = AsyncMock(return_value=True)
     resp = await client.post("/api/ecoal/control", json={"action": "force_co_mode", "lowered": True, "hours": 2})
     assert resp.status == 200
     result = await resp.json()
     assert result == {"success": True}
     mock_coordinator.async_force_co_mode.assert_awaited_with(lowered=True, hours=2)
+
+    mock_coordinator.async_force_schedule_mode = AsyncMock(return_value=True)
+    resp = await client.post("/api/ecoal/control", json={"action": "force_schedule_mode", "schedule_id": 27, "lowered": False, "hours": 3})
+    assert resp.status == 200
+    result = await resp.json()
+    assert result == {"success": True}
+    mock_coordinator.async_force_schedule_mode.assert_awaited_with(schedule_id=27, lowered=False, hours=3)
 
     # 5c. Test POST /api/ecoal/control -> start_legionella & stop_legionella
     mock_coordinator.async_start_legionella = AsyncMock(return_value=True)
@@ -141,6 +161,32 @@ async def test_api_ecoal_views(hass: HomeAssistant, hass_client_no_auth, mock_fu
     assert resp.status == 200
     assert await resp.json() == {"success": True}
     mock_coordinator.client.sync_clock.assert_awaited_once()
+
+    # 5f. Test POST /api/ecoal/control -> set_room_day_temp & set_room_night_temp
+    mock_coordinator.async_set_room_day_temp = AsyncMock(return_value=True)
+    mock_coordinator.async_set_room_night_temp = AsyncMock(return_value=True)
+    resp = await client.post("/api/ecoal/control", json={"action": "set_room_day_temp", "temp": 21.5})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.async_set_room_day_temp.assert_awaited_with(21.5)
+
+    resp = await client.post("/api/ecoal/control", json={"action": "set_room_night_temp", "temp": 19.0})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.async_set_room_night_temp.assert_awaited_with(19.0)
+
+    # 5g. Test POST /api/ecoal/control -> set_cleaning_date & set_legionella_date
+    mock_coordinator.async_set_cleaning_data = AsyncMock(return_value=True)
+    mock_coordinator.async_set_legionella_date = AsyncMock(return_value=True)
+    resp = await client.post("/api/ecoal/control", json={"action": "set_cleaning_date", "date": "2026-11-01T12:00:00", "coal_burned_kg": 15.0})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.async_set_cleaning_data.assert_awaited_with(last_cleaned_at="2026-11-01T12:00:00", coal_burned_kg=15.0)
+
+    resp = await client.post("/api/ecoal/control", json={"action": "set_legionella_date", "date": "2026-11-03T18:30:00"})
+    assert resp.status == 200
+    assert await resp.json() == {"success": True}
+    mock_coordinator.async_set_legionella_date.assert_awaited_with("2026-11-03T18:30:00")
 
     # 6. Test error cases
     resp = await client.get("/api/ecoal/com")

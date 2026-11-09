@@ -190,6 +190,20 @@ W przypadku zawieszenia oprogramowania układowego, awarii sieci lub błędu skr
 - **Rozwiązanie**: Przestawiono `PARAM 78` na **`1`** (aktywny programator/regulator pokojowy).
 - **Efekt**: Sterownik natychmiast uznał pomieszczenie za dogrzane i aktywował cykliczną przerwę pompy CO (4 minuty pracy / 20 minut postoju). Wymiennik kotła w podtrzymaniu przestał być wysysany z ciepła, a kocioł może bezpiecznie utrzymywać temperaturę przez ponad godzinę bez podawania opału.
 
+### 2026-11-09 (Szybki dostęp do nastaw temperatury pokojowej w UI & HA):
+- **Encje Home Assistant**: Wprowadzono encje sterujące `number.garaz_ecoal_temp_pokojowa_dzienna` oraz `number.garaz_ecoal_temp_pokojowa_nocna` (zakres 10.0–35.0°C, krok 0.1°C) umożliwiające bezpośrednie dodanie suwaków/termostatów na karty Lovelace oraz automatyzację.
+- **Kafelek na Pulpicie eCoal SPA**: Dodano pierwszoplanowy kafelek `🏠 Pokój & Regulator` z odczytem bieżącej temperatury wewnętrznej, odznaką aktywnej strefy (☀️ Dzień / 🌙 Noc), statusem dogrzania/pauzy pompy CO oraz przyciskami `+` / `-` (co 0.5°C) dla strefy dziennej i nocnej.
+
+### 2026-11-09 (Trwały magazyn danych czyszczenia i dezynfekcji oraz korekta licznika opału):
+- **Trwały Magazyn (Home Assistant Store)**:
+  - Wprowadzono trwały zapis w `.storage/ecoal_maintenance` oraz `.storage/ecoal_legionella`.
+  - Dane o dacie ostatniego czyszczenia wymiennika oraz dacie wykonania dezynfekcji termicznej (Legionella) nie kasują się już po zaniku zasilania, restarcie Home Assistanta czy restarcie sterownika eCoal.
+- **Naprawa błędu spalonego opału (0.1 kg -> wartość rzeczywista)**:
+  - Wyeliminowano błąd podwójnego dzielenia przez 60 (`current_feeder_min = (fr_raw / 60.0)`), gdzie czas pracy podajnika był już podany w minutach.
+  - Zabezpieczono akumulację spalonego węgla (`accumulated_coal_burned_kg`) przed resetem sprzętowego licznika ślimaka w sterowniku (np. po dosypaniu opału lub restarcie zasilania).
+- **Ręczna korekta w UI**:
+  - W zakładce *Konserwacja* dodano przyciski modalne: `📅 Koryguj datę / węgiel` dla czyszczenia oraz `✏️ Koryguj datę` dla dezynfekcji termicznej, umożliwiając łatwe przywrócenie historycznych dat.
+
 ---
 
 ## 8. Rejestr Zużycia Węgla i Porównanie Efektywności (Benchmark 2026-10 / 2026-11)

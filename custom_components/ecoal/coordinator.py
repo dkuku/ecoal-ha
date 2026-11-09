@@ -17,6 +17,8 @@ _LOGGER = logging.getLogger(__name__)
 
 MAINTENANCE_STORAGE_KEY = "ecoal_maintenance"
 MAINTENANCE_STORAGE_VERSION = 1
+LEGIONELLA_STORAGE_KEY = "ecoal_legionella"
+LEGIONELLA_STORAGE_VERSION = 1
 
 
 class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -59,12 +61,18 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "saved_co_target": None,
             "saved_dhw_target": None,
         }
+        self._legionella_store = Store[dict[str, Any]](
+            hass, LEGIONELLA_STORAGE_VERSION, LEGIONELLA_STORAGE_KEY
+        )
+        self._legionella_loaded: bool = False
         self._maintenance_store = Store[dict[str, Any]](
             hass, MAINTENANCE_STORAGE_VERSION, MAINTENANCE_STORAGE_KEY
         )
         self._maintenance_data: dict[str, Any] = {
-            "last_cleaned_at": datetime.now().isoformat(),
+            "last_cleaned_at": None,
             "feeder_runtime_at_cleaning": 0.0,
+            "last_feeder_min": 0.0,
+            "accumulated_coal_burned_kg": 0.0,
             "coal_burned_since_cleaning_kg": 0.0,
             "days_since_cleaning": 0,
             "heating_rate_c_per_min": None,
@@ -73,6 +81,7 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "cleaning_warning_reason": None,
         }
         self._maintenance_loaded: bool = False
+        self._maintenance_save_counter: int = 0
         self._last_heating_ts: float | None = None
         self._last_boiler_temp: float | None = None
         self._exhaust_heating_samples: list[float] = []
@@ -173,9 +182,31 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             await self.async_request_refresh()
         return success
 
-    async def async_force_co_mode(self, lowered: bool, hours: int = 2) -> bool:
-        """Force lowered ('0') or comfort ('1') mode in CO weekly schedule for next hours."""
-        schedule = await self.client.get_weekly_program(PARAM_PROG_CO_TAB)
+    async def async_set_room_day_temp(self, temp: float) -> bool:
+        """Set room day setpoint temperature and update local state."""
+        success = await self.client.set_room_day_temp(temp)
+        if success:
+            if self.data is not None:
+                self.data["room_day_temp"] = round(temp, 1)
+                self.async_update_listeners()
+            await self.async_request_refresh()
+        return success
+
+    async def async_set_room_night_temp(self, temp: float) -> bool:
+        """Set room night setpoint temperature and update local state."""
+        success = await self.client.set_room_night_temp(temp)
+        if success:
+            if self.data is not None:
+                self.data["room_night_temp"] = round(temp, 1)
+                self.async_update_listeners()
+            await self.async_request_refresh()
+        return success
+
+    async def async_force_schedule_mode(
+        self, schedule_id: int = PARAM_PROG_CO_TAB, lowered: bool = True, hours: int = 2
+    ) -> bool:
+        """Force lowered ('0') or comfort ('1') mode in a weekly schedule for next hours."""
+        schedule = await self.client.get_weekly_program(schedule_id)
         if not schedule or len(schedule) != 7:
             return False
 
@@ -205,10 +236,16 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             chars[cur_slot] = target_bit
             days_copy[cur_day] = "".join(chars)
 
-        success = await self.client.set_weekly_program(PARAM_PROG_CO_TAB, days_copy)
+        success = await self.client.set_weekly_program(schedule_id, days_copy)
         if success:
             await self.async_request_refresh()
         return success
+
+    async def async_force_co_mode(self, lowered: bool, hours: int = 2) -> bool:
+        """Force lowered ('0') or comfort ('1') mode in CO weekly schedule for next hours."""
+        return await self.async_force_schedule_mode(
+            schedule_id=PARAM_PROG_CO_TAB, lowered=lowered, hours=hours
+        )
 
     async def _async_update_data(self) -> dict[str, Any]:
         status = await self.client.get_status()
@@ -246,6 +283,17 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         status["dhw_priority"] = self.dhw_priority
         status["blower_correction"] = self.blower_correction
         status["exhaust_temp_regulator"] = self.exhaust_temp_regulator
+        # 0. Anti-Legionella persistent state loader
+        if not self._legionella_loaded:
+            try:
+                stored_leg = await self._legionella_store.async_load()
+                if stored_leg and isinstance(stored_leg, dict):
+                    if stored_leg.get("last_run"):
+                        self._legionella_state["last_run"] = stored_leg["last_run"]
+            except Exception as err:
+                _LOGGER.debug("Could not load legionella data from store: %s", err)
+            self._legionella_loaded = True
+
         status["legionella"] = dict(self._legionella_state)
 
         # 1. Maintenance & Cleaning Tracker
@@ -258,13 +306,29 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.debug("Could not load maintenance data from store: %s", err)
             self._maintenance_loaded = True
 
+        # feeder_runtime is already in minutes from client.py
         current_feeder_min = status.get("feeder_runtime_min")
         if current_feeder_min is None:
-            fr_raw = status.get("feeder_runtime", 0)
-            current_feeder_min = (fr_raw / 60.0) if fr_raw else 0.0
+            fr_raw = status.get("feeder_runtime", 0.0)
+            current_feeder_min = float(fr_raw) if fr_raw else 0.0
+        else:
+            current_feeder_min = float(current_feeder_min)
 
         base_feeder_min = float(self._maintenance_data.get("feeder_runtime_at_cleaning", 0.0) or 0.0)
-        burned = max(0.0, round((current_feeder_min - base_feeder_min) * 0.3666, 1))
+        last_feeder_min = float(self._maintenance_data.get("last_feeder_min", base_feeder_min) or base_feeder_min)
+        accumulated_kg = float(self._maintenance_data.get("accumulated_coal_burned_kg", 0.0) or 0.0)
+
+        # Detect counter reset / rollover (e.g. controller restart or hopper refill reset feeder counter to 0)
+        if current_feeder_min < last_feeder_min:
+            coal_before_reset = max(0.0, (last_feeder_min - base_feeder_min) * 0.3666)
+            accumulated_kg += coal_before_reset
+            base_feeder_min = 0.0
+            self._maintenance_data["accumulated_coal_burned_kg"] = round(accumulated_kg, 2)
+            self._maintenance_data["feeder_runtime_at_cleaning"] = 0.0
+
+        self._maintenance_data["last_feeder_min"] = current_feeder_min
+        current_cycle_burned = max(0.0, (current_feeder_min - base_feeder_min) * 0.3666)
+        burned = round(accumulated_kg + current_cycle_burned, 1)
         self._maintenance_data["coal_burned_since_cleaning_kg"] = burned
 
         last_cleaned_str = self._maintenance_data.get("last_cleaned_at")
@@ -276,6 +340,15 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             except Exception:
                 pass
         self._maintenance_data["days_since_cleaning"] = days
+
+        # Auto-persist maintenance state periodically (every ~15 minutes / 30 poll cycles)
+        self._maintenance_save_counter += 1
+        if self._maintenance_save_counter >= 30:
+            self._maintenance_save_counter = 0
+            try:
+                await self._maintenance_store.async_save(self._maintenance_data)
+            except Exception as err:
+                _LOGGER.debug("Could not auto-save maintenance data: %s", err)
 
         # Heating rate calculation during active heating (heating == 1)
         is_heating = bool(status.get("heating") == 1 or status.get("heating") is True)
@@ -438,6 +511,10 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         last_run = self._legionella_state.get("last_run")
         if reason == "completed":
             last_run = datetime.now().isoformat()
+            try:
+                await self._legionella_store.async_save({"last_run": last_run})
+            except Exception as err:
+                _LOGGER.warning("Could not persist legionella data: %s", err)
 
         self._legionella_state = {
             "active": False,
@@ -456,6 +533,18 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.data["legionella"] = dict(self._legionella_state)
             self.async_update_listeners()
             await self.async_request_refresh()
+        return True
+
+    async def async_set_legionella_date(self, date_str: str | None) -> bool:
+        """Set date of last thermal disinfection and persist it."""
+        self._legionella_state["last_run"] = date_str
+        try:
+            await self._legionella_store.async_save({"last_run": date_str})
+        except Exception as err:
+            _LOGGER.warning("Could not persist legionella data: %s", err)
+        if self.data is not None:
+            self.data["legionella"] = dict(self._legionella_state)
+            self.async_update_listeners()
         return True
 
     async def _async_legionella_loop(self) -> None:
@@ -512,12 +601,12 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Record boiler cleaning event, reset coal counter and clear warnings."""
         current_feeder_min = 0.0
         if self.data:
-            current_feeder_min = self.data.get("feeder_runtime_min") or (
-                self.data.get("feeder_runtime", 0) / 60.0
-            )
+            current_feeder_min = float(self.data.get("feeder_runtime_min") or self.data.get("feeder_runtime") or 0.0)
         self._maintenance_data = {
             "last_cleaned_at": datetime.now().isoformat(),
             "feeder_runtime_at_cleaning": current_feeder_min,
+            "last_feeder_min": current_feeder_min,
+            "accumulated_coal_burned_kg": 0.0,
             "coal_burned_since_cleaning_kg": 0.0,
             "days_since_cleaning": 0,
             "heating_rate_c_per_min": None,
@@ -537,6 +626,42 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self.data["days_since_cleaning"] = 0
             self.data["cleaning_required"] = False
             self.data["cleaning_warning_reason"] = None
+            self.async_update_listeners()
+            await self.async_request_refresh()
+        return True
+
+    async def async_set_cleaning_data(
+        self,
+        last_cleaned_at: str | None = None,
+        coal_burned_kg: float | None = None,
+    ) -> bool:
+        """Manually set last cleaning timestamp and/or coal burned since cleaning."""
+        if last_cleaned_at:
+            self._maintenance_data["last_cleaned_at"] = last_cleaned_at
+            try:
+                dt_clean = datetime.fromisoformat(last_cleaned_at)
+                self._maintenance_data["days_since_cleaning"] = max(0, (datetime.now() - dt_clean).days)
+            except Exception:
+                pass
+
+        if coal_burned_kg is not None:
+            current_feeder_min = 0.0
+            if self.data:
+                current_feeder_min = float(self.data.get("feeder_runtime_min") or self.data.get("feeder_runtime") or 0.0)
+            self._maintenance_data["accumulated_coal_burned_kg"] = round(float(coal_burned_kg), 1)
+            self._maintenance_data["feeder_runtime_at_cleaning"] = current_feeder_min
+            self._maintenance_data["last_feeder_min"] = current_feeder_min
+            self._maintenance_data["coal_burned_since_cleaning_kg"] = round(float(coal_burned_kg), 1)
+
+        try:
+            await self._maintenance_store.async_save(self._maintenance_data)
+        except Exception as err:
+            _LOGGER.warning("Could not persist maintenance data: %s", err)
+
+        if self.data is not None:
+            self.data["maintenance"] = dict(self._maintenance_data)
+            self.data["coal_burned_since_cleaning_kg"] = self._maintenance_data["coal_burned_since_cleaning_kg"]
+            self.data["days_since_cleaning"] = self._maintenance_data["days_since_cleaning"]
             self.async_update_listeners()
             await self.async_request_refresh()
         return True

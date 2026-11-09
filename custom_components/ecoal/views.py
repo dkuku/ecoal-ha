@@ -121,6 +121,28 @@ class EcoalControlView(HomeAssistantView):
                 if not (30 <= temp <= 70):
                     return self.json({"error": f"DHW temperature {temp}°C out of range [30..70]"}, status_code=400)
                 success = await coordinator.client.set_target_dhw_temp(temp)
+            elif action == "set_room_day_temp":
+                temp_val = body.get("value", body.get("temp"))
+                if temp_val is None:
+                    return self.json({"error": "Missing value"}, status_code=400)
+                try:
+                    temp = float(temp_val)
+                except (ValueError, TypeError):
+                    return self.json({"error": "Invalid room temperature value"}, status_code=400)
+                if not (10.0 <= temp <= 35.0):
+                    return self.json({"error": f"Room day temp {temp}°C out of range [10..35]"}, status_code=400)
+                success = await coordinator.async_set_room_day_temp(temp)
+            elif action == "set_room_night_temp":
+                temp_val = body.get("value", body.get("temp"))
+                if temp_val is None:
+                    return self.json({"error": "Missing value"}, status_code=400)
+                try:
+                    temp = float(temp_val)
+                except (ValueError, TypeError):
+                    return self.json({"error": "Invalid room temperature value"}, status_code=400)
+                if not (10.0 <= temp <= 35.0):
+                    return self.json({"error": f"Room night temp {temp}°C out of range [10..35]"}, status_code=400)
+                success = await coordinator.async_set_room_night_temp(temp)
             elif action == "refill_hopper":
                 kg_raw = body.get("kg", coordinator.hopper_capacity_kg)
                 kg = int(kg_raw)
@@ -162,6 +184,14 @@ class EcoalControlView(HomeAssistantView):
                 lowered = bool(body.get("lowered", True))
                 hours = int(body.get("hours", 2))
                 success = await coordinator.async_force_co_mode(lowered=lowered, hours=hours)
+            elif action == "force_schedule_mode":
+                schedule_id = int(body.get("schedule_id", 24))
+                lowered = bool(body.get("lowered", True))
+                hours = int(body.get("hours", 2))
+                if hasattr(coordinator, "async_force_schedule_mode"):
+                    success = await coordinator.async_force_schedule_mode(schedule_id=schedule_id, lowered=lowered, hours=hours)
+                else:
+                    success = await coordinator.async_force_co_mode(lowered=lowered, hours=hours)
             elif action == "start_legionella":
                 duration = int(body.get("duration", 30))
                 target_dhw = int(body.get("target_dhw", 60))
@@ -175,6 +205,23 @@ class EcoalControlView(HomeAssistantView):
                 success = await coordinator.async_stop_legionella(reason="manual_cancel")
             elif action == "record_cleaning":
                 success = await coordinator.async_record_cleaning()
+            elif action == "set_cleaning_date":
+                cleaned_at = body.get("last_cleaned_at") or body.get("date") or value
+                coal_burned = body.get("coal_burned_kg")
+                if coal_burned is not None:
+                    try:
+                        coal_burned = float(coal_burned)
+                    except (ValueError, TypeError):
+                        coal_burned = None
+                success = await coordinator.async_set_cleaning_data(
+                    last_cleaned_at=str(cleaned_at) if cleaned_at else None,
+                    coal_burned_kg=coal_burned,
+                )
+            elif action == "set_legionella_date":
+                last_run = body.get("last_run") or body.get("date") or value
+                success = await coordinator.async_set_legionella_date(
+                    str(last_run) if last_run else None
+                )
             elif action == "extinguish":
                 success = await coordinator.async_extinguish_furnace()
             elif action == "set_auto_mode":

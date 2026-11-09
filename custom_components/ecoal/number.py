@@ -15,6 +15,7 @@ from homeassistant.const import (
     STATE_UNKNOWN,
     EntityCategory,
     UnitOfMass,
+    UnitOfTemperature,
     UnitOfTime,
 )
 from homeassistant.core import HomeAssistant
@@ -36,11 +37,17 @@ async def async_setup_entry(
 ) -> None:
     """Set up eCoal number entities."""
     coordinator: EcoalCoordinator = hass.data[DOMAIN][entry.entry_id]
-    async_add_entities([
+    entities: list[NumberEntity] = [
         EcoalHopperCapacityNumber(coordinator, entry),
         EcoalFeederMaxRuntimeNumber(coordinator, entry),
         EcoalBlowerCorrectionNumber(coordinator, entry),
-    ])
+    ]
+    if "indoor_temp" in coordinator.connected_sensors or (
+        coordinator.data and "room_day_temp" in coordinator.data
+    ):
+        entities.append(EcoalRoomDayTempNumber(coordinator, entry))
+        entities.append(EcoalRoomNightTempNumber(coordinator, entry))
+    async_add_entities(entities)
 
 
 class EcoalHopperCapacityNumber(CoordinatorEntity[EcoalCoordinator], RestoreEntity, NumberEntity):
@@ -164,3 +171,77 @@ class EcoalBlowerCorrectionNumber(CoordinatorEntity[EcoalCoordinator], NumberEnt
     async def async_set_native_value(self, value: float) -> None:
         """Set blower power correction percentage on furnace controller."""
         await self.coordinator.async_set_blower_correction(int(value))
+
+
+class EcoalRoomDayTempNumber(CoordinatorEntity[EcoalCoordinator], NumberEntity):
+    """Number entity for setting room day target temperature (PARAM 32)."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "room_day_temp"
+    _attr_icon = "mdi:weather-sunny"
+    _attr_device_class = NumberDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_native_min_value = 10.0
+    _attr_native_max_value = 35.0
+    _attr_native_step = 0.1
+    _attr_mode = NumberMode.BOX
+
+    def __init__(self, coordinator: EcoalCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_room_day_temp"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name="eCoal",
+            manufacturer="eCoal",
+            model="Furnace Controller",
+            sw_version=coordinator.firmware_version,
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return room day target temperature in °C."""
+        if self.coordinator.data is None:
+            return None
+        val = self.coordinator.data.get("room_day_temp")
+        return float(val) if val is not None else None
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Write room day target temperature to furnace controller."""
+        await self.coordinator.async_set_room_day_temp(value)
+
+
+class EcoalRoomNightTempNumber(CoordinatorEntity[EcoalCoordinator], NumberEntity):
+    """Number entity for setting room night target temperature (PARAM 33)."""
+
+    _attr_has_entity_name = True
+    _attr_translation_key = "room_night_temp"
+    _attr_icon = "mdi:weather-night"
+    _attr_device_class = NumberDeviceClass.TEMPERATURE
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_native_min_value = 10.0
+    _attr_native_max_value = 35.0
+    _attr_native_step = 0.1
+    _attr_mode = NumberMode.BOX
+
+    def __init__(self, coordinator: EcoalCoordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_room_night_temp"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+            name="eCoal",
+            manufacturer="eCoal",
+            model="Furnace Controller",
+            sw_version=coordinator.firmware_version,
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return room night target temperature in °C."""
+        if self.coordinator.data is None:
+            return None
+        val = self.coordinator.data.get("room_night_temp")
+        return float(val) if val is not None else None
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Write room night target temperature to furnace controller."""
+        await self.coordinator.async_set_room_night_temp(value)

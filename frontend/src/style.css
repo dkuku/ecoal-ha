@@ -238,7 +238,85 @@ body {
   display: block;
 }
 
-/* Dashboard Grid */
+/* Dashboard Layout */
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.schematic-section {
+  width: 100%;
+}
+
+.schedule-section {
+  width: 100%;
+}
+
+.metrics-section {
+  width: 100%;
+}
+
+.metrics-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.15rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .metrics-grid-2col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .card-span-2 {
+    grid-column: 1 / -1;
+  }
+}
+
+.schedule-selector-tabs {
+  display: inline-flex;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.schedule-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.35rem 0.75rem;
+  border-radius: calc(var(--radius-sm) - 2px);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+}
+
+.schedule-tab-btn:hover {
+  color: var(--text-color);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.schedule-tab-btn.active {
+  background: var(--bg-card);
+  color: var(--text-color);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.schedule-tab-btn .active-dot {
+  color: #22c55e;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+/* Dashboard Grid (Legacy support) */
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -288,6 +366,8 @@ body {
   width: 100%;
   aspect-ratio: 16 / 10;
   max-height: 480px;
+  max-width: 860px;
+  margin: 0 auto;
   position: relative;
   background: #090d16;
   border-radius: var(--radius-md);
@@ -1538,4 +1618,92 @@ body {
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+/* Global Modal Styles */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 15, 29, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.modal-card {
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  max-width: 460px;
+  width: 100%;
+  padding: 1.5rem;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.modal-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.modal-body {
+  margin-bottom: 1.4rem;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.btn-modal-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 0.55rem 1.1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-modal-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.btn-modal-confirm {
+  background: var(--accent-flame);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-modal-confirm:hover {
+  filter: brightness(1.1);
 }

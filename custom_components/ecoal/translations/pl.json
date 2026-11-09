@@ -44,7 +44,9 @@
     "number": {
       "hopper_capacity": { "name": "Pojemność zasobnika" },
       "feeder_max_runtime": { "name": "Czas pracy do opróżnienia zasobnika" },
-      "blower_correction": { "name": "Korekta dmuchawy" }
+      "blower_correction": { "name": "Korekta dmuchawy" },
+      "room_day_temp": { "name": "Zadana temp. pokojowa dzienna" },
+      "room_night_temp": { "name": "Zadana temp. pokojowa nocna" }
     },
     "select": {
       "feeder_mode": {

@@ -379,7 +379,10 @@ class EcoalClient:
 
         # Feeder time (bytes 64-67): 32-bit LE seconds
         feeder_secs = d[64] | (d[65] << 8) | (d[66] << 16) | (d[67] << 24)
-        result["feeder_runtime"] = round(feeder_secs / 60.0, 1)
+        feeder_min = round(feeder_secs / 60.0, 1)
+        result["feeder_runtime"] = feeder_min
+        result["feeder_runtime_min"] = feeder_min
+        result["feeder_runtime_sec"] = feeder_secs
 
         # Fuel load date (bytes 68-72)
         fuel_load_dt: datetime | None = None
@@ -489,6 +492,20 @@ class EcoalClient:
 
     async def set_floor_night_temp(self, temp: int) -> bool:
         cmd = _build_value_cmd(PARAM_PODL_NOCNA, temp)
+        result = await self._send(cmd)
+        return result is not None
+
+    async def set_room_day_temp(self, temp: float | int) -> bool:
+        """Set target room day temperature in °C (PARAM 32: value * 10)."""
+        val = int(round(temp * 10))
+        cmd = _build_value_cmd(PARAM_PROG_POKOJOWY_DZIENNA, val)
+        result = await self._send(cmd)
+        return result is not None
+
+    async def set_room_night_temp(self, temp: float | int) -> bool:
+        """Set target room night temperature in °C (PARAM 33: value * 10)."""
+        val = int(round(temp * 10))
+        cmd = _build_value_cmd(PARAM_PROG_POKOJOWY_NOCNA, val)
         result = await self._send(cmd)
         return result is not None
 

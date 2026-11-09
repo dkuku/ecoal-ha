@@ -177,6 +177,78 @@
     );
   }
 
+  // Edit Cleaning Modal State
+  let editCleaningModalOpen = $state(false);
+  let inputCleaningDate = $state('');
+  let inputCleaningCoal = $state(0.0);
+
+  function openEditCleaningModal() {
+    let initialIso = maintenance?.last_cleaned_at;
+    if (initialIso) {
+      try {
+        const d = new Date(initialIso);
+        inputCleaningDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      } catch {
+        inputCleaningDate = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      }
+    } else {
+      inputCleaningDate = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+    inputCleaningCoal = Number(coalBurnedSinceCleaning) || 0.0;
+    editCleaningModalOpen = true;
+  }
+
+  async function handleSaveCleaningModal() {
+    if (!inputCleaningDate) return;
+    try {
+      const iso = new Date(inputCleaningDate).toISOString();
+      const ok = await client.setCleaningDate(iso, inputCleaningCoal);
+      if (ok) {
+        showToast('Zapisano datę czyszczenia i stan spalonego węgla na stałe', 'success');
+        editCleaningModalOpen = false;
+      } else {
+        showToast('Błąd zapisu danych czyszczenia', 'error');
+      }
+    } catch (e) {
+      showToast(`Błąd: ${e.message}`, 'error');
+    }
+  }
+
+  // Edit Legionella Modal State
+  let editLegionellaModalOpen = $state(false);
+  let inputLegionellaDate = $state('');
+
+  function openEditLegionellaModal() {
+    let initialIso = legionella?.last_run;
+    if (initialIso) {
+      try {
+        const d = new Date(initialIso);
+        inputLegionellaDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      } catch {
+        inputLegionellaDate = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      }
+    } else {
+      inputLegionellaDate = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+    editLegionellaModalOpen = true;
+  }
+
+  async function handleSaveLegionellaModal() {
+    if (!inputLegionellaDate) return;
+    try {
+      const iso = new Date(inputLegionellaDate).toISOString();
+      const ok = await client.setLegionellaDate(iso);
+      if (ok) {
+        showToast('Zapisano datę ostatniej dezynfekcji na stałe', 'success');
+        editLegionellaModalOpen = false;
+      } else {
+        showToast('Błąd zapisu daty dezynfekcji', 'error');
+      }
+    } catch (e) {
+      showToast(`Błąd: ${e.message}`, 'error');
+    }
+  }
+
   function confirmExtinguish() {
     openConfirm(
       {
@@ -420,6 +492,16 @@
           <span class="btn-icon">🧹</span>
           <span class="btn-title">Oznacz wyczyszczenie kotła</span>
         </button>
+        <button
+          type="button"
+          class="btn-maint"
+          style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa; margin-top: 0.5rem;"
+          onclick={openEditCleaningModal}
+          title="Ustaw ręcznie datę ostatniego czyszczenia lub skoryguj licznik spalonego węgla"
+        >
+          <span class="btn-icon">📅</span>
+          <span class="btn-title">Koryguj datę / węgiel</span>
+        </button>
       </div>
     </div>
 
@@ -501,8 +583,16 @@
           </div>
         {/if}
 
-        <div class="legionella-last-run">
-          Ostatnia dezynfekcja: <strong>{formatLegionellaDate(legionella?.last_run)}</strong>
+        <div class="legionella-last-run" style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Ostatnia dezynfekcja: <strong>{formatLegionellaDate(legionella?.last_run)}</strong></span>
+          <button
+            type="button"
+            onclick={openEditLegionellaModal}
+            style="background: rgba(148, 163, 184, 0.12); border: 1px solid rgba(148, 163, 184, 0.3); border-radius: 4px; color: #cbd5e1; cursor: pointer; padding: 2px 7px; font-size: 0.75rem;"
+            title="Ustaw datę ostatniej udanej dezynfekcji termicznej"
+          >
+            ✏️ Koryguj datę
+          </button>
         </div>
       </div>
 
@@ -616,6 +706,89 @@
   onConfirm={handleConfirmModal}
   onCancel={handleCancelModal}
 />
+
+{#if editCleaningModalOpen}
+  <div class="modal-backdrop" onclick={() => (editCleaningModalOpen = false)} role="presentation">
+    <div class="modal-card" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+      <div class="modal-header">
+        <span class="modal-icon">🧹</span>
+        <h3 class="modal-title">Korekta Historii Czyszczenia Kotła</h3>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label for="cleaningDateInput" style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.35rem;">
+            Data i godzina ostatniego czyszczenia:
+          </label>
+          <input
+            id="cleaningDateInput"
+            type="datetime-local"
+            bind:value={inputCleaningDate}
+            style="width: 100%; padding: 0.55rem; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); border-radius: 6px; color: #f8fafc;"
+          />
+        </div>
+        <div>
+          <label for="cleaningCoalInput" style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.35rem;">
+            Spalony węgiel od czyszczenia [kg]:
+          </label>
+          <input
+            id="cleaningCoalInput"
+            type="number"
+            step="0.1"
+            min="0"
+            bind:value={inputCleaningCoal}
+            style="width: 100%; padding: 0.55rem; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); border-radius: 6px; color: #f8fafc;"
+          />
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">
+          Wartości zostaną zapisane w trwałym magazynie Home Assistant (.storage) i przetrwają restarty oraz zaniki zasilania.
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" onclick={() => (editCleaningModalOpen = false)}>
+          Anuluj
+        </button>
+        <button type="button" class="btn-modal-confirm" style="background: #3b82f6;" onclick={handleSaveCleaningModal}>
+          💾 Zapisz na stałe
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
+
+{#if editLegionellaModalOpen}
+  <div class="modal-backdrop" onclick={() => (editLegionellaModalOpen = false)} role="presentation">
+    <div class="modal-card" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.stopPropagation()} role="dialog" aria-modal="true" tabindex="-1">
+      <div class="modal-header">
+        <span class="modal-icon">🦠</span>
+        <h3 class="modal-title">Data Ostatniej Dezynfekcji Legionella</h3>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div>
+          <label for="legionellaDateInput" style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.35rem;">
+            Data i godzina ostatniego wygrzania bojlera (60°C):
+          </label>
+          <input
+            id="legionellaDateInput"
+            type="datetime-local"
+            bind:value={inputLegionellaDate}
+            style="width: 100%; padding: 0.55rem; background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-color); border-radius: 6px; color: #f8fafc;"
+          />
+        </div>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">
+          Zapisuje datę do trwałej pamięci (.storage). Nie uruchamia grzania bojlera.
+        </p>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-modal-cancel" onclick={() => (editLegionellaModalOpen = false)}>
+          Anuluj
+        </button>
+        <button type="button" class="btn-modal-confirm" style="background: #0ea5e9;" onclick={handleSaveLegionellaModal}>
+          💾 Zapisz na stałe
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .maintenance-view {

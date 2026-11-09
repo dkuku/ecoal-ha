@@ -298,6 +298,8 @@ export function decodeStatusFrame(tab) {
   result.room_heating = d[44];
   result.internal_setpoint = d[45];
   result.day_night = d[46];
+  result.room_day_temp = decodeTemp(d[47], d[48]);
+  result.room_night_temp = decodeTemp(d[49], d[50]);
   result.co_lowered_amount = d[51];
   result.cwu_lowered_amount = d[52];
 

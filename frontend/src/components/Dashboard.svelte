@@ -49,38 +49,69 @@
     return `${hours}h ${remMins}m`;
   });
 
-  let coSchedule = $state(null);
+  // Determine active control mode: Room regulation (PARAM 78 > 0) vs CO boiler regulation (PARAM 78 == 0)
+  let isRoomControlActive = $derived(Boolean((status?.internal_setpoint ?? 0) > 0));
+
+  let userSelectedScheduleId = $state(null);
+  let activeScheduleId = $derived(
+    userSelectedScheduleId !== null
+      ? userSelectedScheduleId
+      : (isRoomControlActive ? 27 : 24)
+  );
+
+  let currentSchedule = $state(null);
+  let isScheduleLoading = $state(false);
   let isForcingMode = $state(false);
 
-  async function loadCoSchedule() {
+  async function loadActiveSchedule() {
     if (!client) return;
+    const id = activeScheduleId;
+    isScheduleLoading = true;
     try {
-      const res = await client.getWeeklyProgram(24);
+      const res = await client.getWeeklyProgram(id);
       if (res && res.length === 7) {
-        coSchedule = res;
+        currentSchedule = res;
       }
     } catch (_) {}
+    finally {
+      isScheduleLoading = false;
+    }
   }
 
+  $effect(() => {
+    // Reload whenever active schedule ID changes
+    const _id = activeScheduleId;
+    loadActiveSchedule();
+  });
+
   onMount(() => {
-    loadCoSchedule();
-    const timer = setInterval(loadCoSchedule, 30000);
+    loadActiveSchedule();
+    const timer = setInterval(loadActiveSchedule, 30000);
     return () => clearInterval(timer);
   });
 
-  async function handleForceCoMode(lowered, hours = 2) {
+  async function handleForceMode(lowered, hours = 2) {
     if (!client || isForcingMode) return;
     isForcingMode = true;
     try {
-      const ok = await client.forceCoMode(lowered, hours);
+      const ok = await client.forceScheduleMode(activeScheduleId, lowered, hours);
       if (ok) {
-        showToast(
-          lowered
-            ? `Wymuszono obniżenie temperatury CO na ${hours}h`
-            : `Wymuszono temperaturę komfortową CO na ${hours}h`,
-          'success'
-        );
-        await loadCoSchedule();
+        if (activeScheduleId === 27) {
+          showToast(
+            lowered
+              ? `Wymuszono temperaturę nocną w pokoju na ${hours}h`
+              : `Wymuszono temperaturę dzienną w pokoju na ${hours}h`,
+            'success'
+          );
+        } else {
+          showToast(
+            lowered
+              ? `Wymuszono obniżenie temperatury CO na ${hours}h`
+              : `Wymuszono temperaturę komfortową CO na ${hours}h`,
+            'success'
+          );
+        }
+        await loadActiveSchedule();
       } else {
         showToast('Nie udało się zapisać zmiany w sterowniku kotła', 'error');
       }
@@ -156,7 +187,7 @@
 
   // Calculate timeline slots for the next 24 half-hours (12 hours preview)
   let timelineSlots = $derived.by(() => {
-    if (!coSchedule || coSchedule.length !== 7) return [];
+    if (!currentSchedule || currentSchedule.length !== 7) return [];
     const now = new Date();
     const curHour = now.getHours();
     const curMin = now.getMinutes();
@@ -167,7 +198,7 @@
     for (let i = 0; i < 24; i++) {
       const targetSlot = (curSlot + i) % 48;
       const targetDay = (curDay + Math.floor((curSlot + i) / 48)) % 7;
-      const isComfort = (coSchedule[targetDay] || '')[targetSlot] === '1';
+      const isComfort = (currentSchedule[targetDay] || '')[targetSlot] === '1';
 
       const slotHour = Math.floor(targetSlot / 2).toString().padStart(2, '0');
       const slotMin = targetSlot % 2 === 0 ? '00' : '30';
@@ -281,9 +312,9 @@
   }
 </script>
 
-<div class="dashboard-grid">
-  <!-- Left Column: Hydraulic Schematic & Schedule Timeline Blocks -->
-  <div class="schematic-column">
+<div class="dashboard-layout">
+  <!-- 1. Top Section: Furnace Schematic (Rysunek Pieca) -->
+  <section class="schematic-section">
     <Schematic
       boilerTemp={status?.boiler_temp}
       targetBoilerTemp={status?.target_boiler_temp}
@@ -306,27 +337,73 @@
       fuelKg={fuelKgDisplay}
       heatingState={status?.heating || 0}
     />
+  </section>
 
-    <!-- Card: Harmonogram CO & Oś Czasu (Klocki pod schematem) -->
+  <!-- 2. Middle Section: Harmonogram odpowiadający wybranemu sterownikowi -->
+  <section class="schedule-section">
     <div class="metric-card schedule-preview-card">
       <div class="card-top" style="margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
-          <span class="card-title" style="font-size: 1.05rem;">
-            {status?.co_lowered_active ? '🌙 Tryb Obniżony CO (Aktywny)' : '☀️ Temperatura Komfortowa CO'}
-          </span>
-          {#if status?.co_lowered_active}
-            <span class="badge-lowered">
-              Zadana: <strong>{status.target_boiler_temp}°C</strong> (-{status.co_lowered_amount || 10}°C z bazowej {(status.target_boiler_temp || 0) + (status.co_lowered_amount || 10)}°C)
+        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+          <!-- Przełącznik wyboru harmonogramu (domyślnie aktywny regulator) -->
+          <div class="schedule-selector-tabs">
+            <button
+              class="schedule-tab-btn"
+              class:active={activeScheduleId === 27}
+              onclick={() => userSelectedScheduleId = 27}
+              title="Harmonogram stref dzień/noc regulatora pokojowego"
+            >
+              🏠 Pokojowy (Dzień/Noc)
+              {#if isRoomControlActive}
+                <span class="active-dot" title="Aktywne sterowanie temperaturą wewnętrzną">●</span>
+              {/if}
+            </button>
+            <button
+              class="schedule-tab-btn"
+              class:active={activeScheduleId === 24}
+              onclick={() => userSelectedScheduleId = 24}
+              title="Harmonogram obniżenia temperatury kotła CO"
+            >
+              🔥 Kocioł CO
+              {#if !isRoomControlActive}
+                <span class="active-dot" title="Aktywne sterowanie temperaturą kotła CO">●</span>
+              {/if}
+            </button>
+          </div>
+
+          {#if activeScheduleId === 27}
+            <span class="card-title" style="font-size: 1.05rem;">
+              {status?.day_night === 1 ? '🌙 Tryb Nocny Pokoju' : '☀️ Tryb Dzienny Pokoju'}
             </span>
+            {#if status?.day_night === 1}
+              <span class="badge-lowered">
+                Zadana: <strong>{status?.room_night_temp != null ? status.room_night_temp.toFixed(1) : '--'}°C</strong>
+              </span>
+            {:else}
+              <span class="badge-comfort">
+                Zadana: <strong>{status?.room_day_temp != null ? status.room_day_temp.toFixed(1) : '--'}°C</strong>
+              </span>
+            {/if}
           {:else}
-            <span class="badge-comfort">
-              Zadana: <strong>{status?.target_boiler_temp ?? '--'}°C</strong>
+            <span class="card-title" style="font-size: 1.05rem;">
+              {status?.co_lowered_active ? '🌙 Tryb Obniżony CO' : '☀️ Temperatura Komfortowa CO'}
             </span>
+            {#if status?.co_lowered_active}
+              <span class="badge-lowered">
+                Zadana: <strong>{status?.target_boiler_temp ?? '--'}°C</strong> (-{status?.co_lowered_amount || 10}°C z bazowej {(status?.target_boiler_temp || 0) + (status?.co_lowered_amount || 10)}°C)
+              </span>
+            {:else}
+              <span class="badge-comfort">
+                Zadana: <strong>{status?.target_boiler_temp ?? '--'}°C</strong>
+              </span>
+            {/if}
           {/if}
         </div>
+
         {#if modeRemainingInfo}
           <span class="mode-remaining-badge">
-            {modeRemainingInfo.isComfort ? '☀️ Komfort' : '🌙 Obniżenie'} do <strong>{modeRemainingInfo.endTime}</strong> (pozostało ~{modeRemainingInfo.timeRemaining})
+            {activeScheduleId === 27
+              ? (modeRemainingInfo.isComfort ? '☀️ Dzień' : '🌙 Noc')
+              : (modeRemainingInfo.isComfort ? '☀️ Komfort' : '🌙 Obniżenie')} do <strong>{modeRemainingInfo.endTime}</strong> (pozostało ~{modeRemainingInfo.timeRemaining})
           </span>
         {/if}
       </div>
@@ -334,10 +411,17 @@
       <!-- Klocki osi czasu (Timeline Blocks) -->
       <div class="timeline-wrapper">
         <div class="timeline-header-meta">
-          <span class="timeline-label">Najbliższe 12 godzin (klocki co 30 min):</span>
+          <span class="timeline-label">
+            Najbliższe 12 godzin ({activeScheduleId === 27 ? 'Harmonogram pokojowy #27' : 'Harmonogram CO #24'}, klocki co 30 min):
+          </span>
           <div class="timeline-legend">
-            <span class="legend-item"><span class="legend-swatch comfort"></span> Komfort ({status?.co_lowered_active ? ((status?.target_boiler_temp || 0) + (status?.co_lowered_amount || 10)) : (status?.target_boiler_temp || 55)}°C)</span>
-            <span class="legend-item"><span class="legend-swatch lowered"></span> Obniżona ({status?.co_lowered_active ? (status?.target_boiler_temp || 45) : ((status?.target_boiler_temp || 55) - (status?.co_lowered_amount || 10))}°C)</span>
+            {#if activeScheduleId === 27}
+              <span class="legend-item"><span class="legend-swatch comfort"></span> Dzień ({status?.room_day_temp != null ? status.room_day_temp.toFixed(1) : '21.0'}°C)</span>
+              <span class="legend-item"><span class="legend-swatch lowered"></span> Noc ({status?.room_night_temp != null ? status.room_night_temp.toFixed(1) : '19.0'}°C)</span>
+            {:else}
+              <span class="legend-item"><span class="legend-swatch comfort"></span> Komfort ({status?.co_lowered_active ? ((status?.target_boiler_temp || 0) + (status?.co_lowered_amount || 10)) : (status?.target_boiler_temp || 50)}°C)</span>
+              <span class="legend-item"><span class="legend-swatch lowered"></span> Obniżona ({status?.co_lowered_active ? (status?.target_boiler_temp || 45) : ((status?.target_boiler_temp || 50) - (status?.co_lowered_amount || 10))}°C)</span>
+            {/if}
           </div>
         </div>
 
@@ -348,7 +432,7 @@
               class:comfort={slot.isComfort}
               class:lowered={!slot.isComfort}
               class:current={slot.isCurrent}
-              title="{slot.time} — {slot.isComfort ? 'Komfortowa' : 'Obniżona'}{slot.isCurrent ? ' [TERAZ]' : ''}"
+              title="{slot.time} — {activeScheduleId === 27 ? (slot.isComfort ? 'Dzień / Komfort' : 'Noc / Obniżenie') : (slot.isComfort ? 'Komfortowa CO' : 'Obniżona CO')}{slot.isCurrent ? ' [TERAZ]' : ''}"
             >
               {#if slot.isCurrent}
                 <div class="current-indicator">TERAZ</div>
@@ -363,22 +447,41 @@
 
       <!-- Quick Action Buttons -->
       <div class="schedule-actions-row">
-        <button
-          class="btn-quick-mode night"
-          onclick={() => handleForceCoMode(true, 2)}
-          disabled={isForcingMode}
-          title="Wymusza obniżenie temperatury CO w harmonogramie na najbliższe 2 godziny (4 klocki)"
-        >
-          {isForcingMode ? 'Zapisywanie...' : '🌙 Wymuś obniżenie (2h)'}
-        </button>
-        <button
-          class="btn-quick-mode day"
-          onclick={() => handleForceCoMode(false, 2)}
-          disabled={isForcingMode}
-          title="Wymusza temperaturę komfortową CO w harmonogramie na najbliższe 2 godziny (4 klocki)"
-        >
-          {isForcingMode ? 'Zapisywanie...' : '☀️ Wymuś komfort (2h)'}
-        </button>
+        {#if activeScheduleId === 27}
+          <button
+            class="btn-quick-mode night"
+            onclick={() => handleForceMode(true, 2)}
+            disabled={isForcingMode}
+            title="Wymusza strefę nocną regulatora pokojowego na najbliższe 2 godziny (4 klocki)"
+          >
+            {isForcingMode ? 'Zapisywanie...' : '🌙 Wymuś noc (2h)'}
+          </button>
+          <button
+            class="btn-quick-mode day"
+            onclick={() => handleForceMode(false, 2)}
+            disabled={isForcingMode}
+            title="Wymusza strefę dzienną regulatora pokojowego na najbliższe 2 godziny (4 klocki)"
+          >
+            {isForcingMode ? 'Zapisywanie...' : '☀️ Wymuś dzień (2h)'}
+          </button>
+        {:else}
+          <button
+            class="btn-quick-mode night"
+            onclick={() => handleForceMode(true, 2)}
+            disabled={isForcingMode}
+            title="Wymusza obniżenie temperatury CO w harmonogramie na najbliższe 2 godziny (4 klocki)"
+          >
+            {isForcingMode ? 'Zapisywanie...' : '🌙 Wymuś obniżenie (2h)'}
+          </button>
+          <button
+            class="btn-quick-mode day"
+            onclick={() => handleForceMode(false, 2)}
+            disabled={isForcingMode}
+            title="Wymusza temperaturę komfortową CO w harmonogramie na najbliższe 2 godziny (4 klocki)"
+          >
+            {isForcingMode ? 'Zapisywanie...' : '☀️ Wymuś komfort (2h)'}
+          </button>
+        {/if}
         <button
           class="btn-quick-mode neutral"
           onclick={() => onSelectTab('schedules')}
@@ -387,16 +490,17 @@
         </button>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Right Column: Metrics Cards -->
-  <div class="metrics-grid">
-    <!-- Card 1: Kocioł CO -->
-    <div class="metric-card">
-      <div class="card-top">
-        <span class="card-title">🔥 Kocioł CO</span>
-        {#if status?.auto_mode === false}
-          <span class="badge-extinguished" title="Kocioł w trybie ręcznym / wygaszania. Pompa CO wyłączy się automatycznie przy <40°C">
+  <!-- 3. Bottom Section: 2 kolumny z kartami na desktopie, 1 kolumna na telefonie -->
+  <section class="metrics-section">
+    <div class="metrics-grid-2col">
+      <!-- Card 1: Kocioł CO -->
+      <div class="metric-card">
+        <div class="card-top">
+          <span class="card-title">🔥 Kocioł CO</span>
+          {#if status?.auto_mode === false}
+            <span class="badge-extinguished" title="Kocioł w trybie ręcznym / wygaszania. Pompa CO wyłączy się automatycznie przy <40°C">
             ❄️ Wygaszanie / Manual
           </span>
         {:else if status?.co_lowered_active}
@@ -548,7 +652,88 @@
       </div>
     </div>
 
-    <!-- Card 3: Zapas Opału -->
+    <!-- Card 3: Temperatura Pokojowa / Regulator -->
+    <div class="metric-card">
+      <div class="card-top">
+        <span class="card-title">🏠 Pokój & Regulator</span>
+        {#if status?.day_night === 1}
+          <span class="badge-lowered" title="Aktywna strefa nocna regulatora pokojowego">
+            🌙 Noc
+          </span>
+        {:else}
+          <span
+            style="background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 999px; font-weight: 600;"
+            title="Aktywna strefa dzienna regulatora pokojowego"
+          >
+            ☀️ Dzień
+          </span>
+        {/if}
+      </div>
+
+      <div class="temp-readings-grid">
+        <div class="temp-col">
+          <span class="temp-col-label">ZMIERZONA</span>
+          <div class="temp-col-value">
+            <span class="card-value" style="color: #4ade80;">
+              {status?.indoor_temp != null ? status.indoor_temp.toFixed(1) : '--'}
+            </span>
+            <span class="card-unit">°C</span>
+          </div>
+        </div>
+
+        <div class="temp-col-divider"></div>
+
+        <div class="temp-col">
+          <span class="temp-col-label">ZADANA ({status?.day_night === 1 ? 'NOC' : 'DZIEŃ'})</span>
+          <div class="temp-col-value">
+            <span class="card-value" style="color: #a7f3d0;">
+              {status?.day_night === 1
+                ? (status?.room_night_temp != null ? status.room_night_temp.toFixed(1) : '--')
+                : (status?.room_day_temp != null ? status.room_day_temp.toFixed(1) : '--')}
+            </span>
+            <span class="card-unit">°C</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Szybkie nastawy temperatury: Dzień i Noc -->
+      <div style="display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.5rem;">
+        <div class="setpoint-controls" style="margin-top: 0;">
+          <button class="step-btn" onclick={() => onStepSetpoint('room_day', -0.5)} aria-label="Zmniejsz temp. dzienną">-</button>
+          <span class="step-target-display" title="Zadana temperatura dzienna">
+            ☀️ Dzień: <strong>{status?.room_day_temp != null ? status.room_day_temp.toFixed(1) : '--'}°C</strong>
+          </span>
+          <button class="step-btn" onclick={() => onStepSetpoint('room_day', 0.5)} aria-label="Zwiększ temp. dzienną">+</button>
+        </div>
+
+        <div class="setpoint-controls" style="margin-top: 0;">
+          <button class="step-btn" onclick={() => onStepSetpoint('room_night', -0.5)} aria-label="Zmniejsz temp. nocną">-</button>
+          <span class="step-target-display" title="Zadana temperatura nocna">
+            🌙 Noc: <strong>{status?.room_night_temp != null ? status.room_night_temp.toFixed(1) : '--'}°C</strong>
+          </span>
+          <button class="step-btn" onclick={() => onStepSetpoint('room_night', 0.5)} aria-label="Zwiększ temp. nocną">+</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.55rem; display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+        <span style="color: var(--text-muted);">
+          {#if status?.room_heating}
+            🔥 <strong style="color: #f97316;">Dogrzewanie pokoju</strong>
+          {:else}
+            ✅ <strong style="color: #22c55e;">Pokój dogrzany</strong> (cykl pompy CO)
+          {/if}
+        </span>
+        <button
+          onclick={() => onSelectTab('schedules')}
+          style="background: none; border: none; color: var(--accent-flame); cursor: pointer; text-decoration: underline; font-size: 0.75rem; padding: 0;"
+          title="Przejdź do edycji godzinowego harmonogramu regulatora pokojowego"
+        >
+          📅 Harmonogram
+        </button>
+      </div>
+    </div>
+
+    <!-- Card 4: Zapas Opału -->
     <div class="metric-card">
       <div class="card-top">
         <span class="card-title">📦 Zapas Opału</span>
@@ -716,7 +901,7 @@
     </div>
 
     <!-- Card 5: Temperatury Pomocnicze -->
-    <div class="metric-card" style="grid-column: 1 / -1;">
+    <div class="metric-card card-span-2">
       <div class="card-top">
         <span class="card-title">🌡️ Temperatury Pomocnicze & Warunki</span>
       </div>
@@ -773,4 +958,5 @@
       </div>
     </div>
   </div>
+  </section>
 </div>

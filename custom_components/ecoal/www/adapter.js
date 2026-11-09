@@ -84,6 +84,8 @@ export class MockTransportAdapter extends BaseTransportAdapter {
     this.dhwTemp = initialDhwTemp;
     this.targetBoilerTemp = 55;
     this.targetDhwTemp = 50;
+    this.roomDayTemp = 21.0;
+    this.roomNightTemp = 19.0;
     this.fuelLoadPct = 99;
     this.feederMode = 1; // 1 = retort_group
     this.feederRuntimeSec = 1200;
@@ -91,6 +93,8 @@ export class MockTransportAdapter extends BaseTransportAdapter {
     this.params = {
       17: [50, 35, 65, 50],
       19: [2, 0, 2, 2],
+      32: [210, 100, 350, 210],
+      33: [190, 100, 350, 190],
       38: [45, 42, 60, 45],
       39: [65, 65, 80, 80],
       40: [55, 45, 80, 55],
@@ -134,6 +138,12 @@ export class MockTransportAdapter extends BaseTransportAdapter {
       data[31] = 38; // 38% blower
       data[34] = this.mixerCircuit ?? 2;
       data[35] = 2; // Auth = 2
+      const rDay = Math.round(this.roomDayTemp * 10);
+      data[47] = rDay & 0xff;
+      data[48] = (rDay >> 8) & 0xff;
+      const rNight = Math.round(this.roomNightTemp * 10);
+      data[49] = rNight & 0xff;
+      data[50] = (rNight >> 8) & 0xff;
       data[67] = this.fuelLoadPct;
 
       const payload = [0x01, 0x06, 0x06, 0x00, 0x00, 76, 0, ...data];
@@ -184,6 +194,10 @@ export class MockTransportAdapter extends BaseTransportAdapter {
           this.feederMode = val;
         } else if (cmd3 === 19) {
           this.mixerCircuit = val;
+        } else if (cmd3 === 32) {
+          this.roomDayTemp = val / 10.0;
+        } else if (cmd3 === 33) {
+          this.roomNightTemp = val / 10.0;
         }
         if (!this.params[cmd3]) {
           this.params[cmd3] = [val, 0, 100, val];
@@ -346,6 +360,38 @@ export class EcoalClient {
     return raw && (raw[2] === 6 || raw[2] === 21);
   }
 
+  async setRoomDayTemp(temp) {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "set_room_day_temp", value: temp }),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    const cmd = buildWriteParamCmd(32, Math.round(temp * 10));
+    const raw = await this.adapter.sendHexCmd(cmd);
+    return raw && (raw[2] === 6 || raw[2] === 21);
+  }
+
+  async setRoomNightTemp(temp) {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "set_room_night_temp", value: temp }),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    const cmd = buildWriteParamCmd(33, Math.round(temp * 10));
+    const raw = await this.adapter.sendHexCmd(cmd);
+    return raw && (raw[2] === 6 || raw[2] === 21);
+  }
+
   async setFeederMode(mode) {
     const cmd = buildWriteParamCmd(119, parseInt(mode, 10));
     const raw = await this.adapter.sendHexCmd(cmd);
@@ -432,6 +478,36 @@ export class EcoalClient {
     return true;
   }
 
+  async setCleaningDate(dateStr, coalKg = null) {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const payload = { action: "set_cleaning_date", last_cleaned_at: dateStr };
+        if (coalKg != null) payload.coal_burned_kg = parseFloat(coalKg);
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    return true;
+  }
+
+  async setLegionellaDate(dateStr) {
+    if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
+      try {
+        const resp = await fetch(`${this.adapter.baseUrl}/control`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "set_legionella_date", last_run: dateStr }),
+        });
+        if (resp.ok) return true;
+      } catch (_) {}
+    }
+    return true;
+  }
+
   async ackAlarms() {
     const cmd = buildAckAlarmsCmd();
     const raw = await this.adapter.sendHexCmd(cmd);
@@ -469,25 +545,25 @@ export class EcoalClient {
     return raw && (raw[2] === 6 || raw[2] === 21);
   }
 
-  async forceCoMode(lowered = true, hours = 2) {
+  async forceScheduleMode(scheduleId = 24, lowered = true, hours = 2) {
     if (this.adapter && this.adapter.name === "http" && this.adapter.baseUrl.includes("/api/ecoal")) {
       try {
         const resp = await fetch(`${this.adapter.baseUrl}/control`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "force_co_mode", lowered, hours }),
+          body: JSON.stringify({ action: "force_schedule_mode", schedule_id: scheduleId, lowered, hours }),
         });
         if (resp.ok) return true;
       } catch (_) {}
     }
-    const p24 = await this.getWeeklyProgram(24);
-    if (!p24 || p24.length !== 7) return false;
+    const prog = await this.getWeeklyProgram(scheduleId);
+    if (!prog || prog.length !== 7) return false;
     const now = new Date();
     const dayIdx = now.getDay();
     const slotIdx = now.getHours() * 2 + (now.getMinutes() >= 30 ? 1 : 0);
     const targetBit = lowered ? "0" : "1";
     const totalSlots = Math.max(1, hours * 2);
-    const daysCopy = [...p24];
+    const daysCopy = [...prog];
     for (let offset = 0; offset < totalSlots; offset++) {
       let curSlot = slotIdx + offset;
       let curDay = (dayIdx + Math.floor(curSlot / 48)) % 7;
@@ -496,6 +572,10 @@ export class EcoalClient {
       chars[curSlot] = targetBit;
       daysCopy[curDay] = chars.join("");
     }
-    return await this.setWeeklyProgram(24, daysCopy);
+    return await this.setWeeklyProgram(scheduleId, daysCopy);
+  }
+
+  async forceCoMode(lowered = true, hours = 2) {
+    return this.forceScheduleMode(24, lowered, hours);
   }
 }

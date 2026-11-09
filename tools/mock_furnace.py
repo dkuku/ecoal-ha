@@ -138,6 +138,8 @@ class VirtualFurnaceState:
         set_p(23, 15, 1, 60, 15)  # CMD_OBIEG_POSTOJ
         set_p(30, 60, 45, 80, 60)  # CMD_PROG_CO_M10
         set_p(31, 45, 40, 70, 45)  # CMD_PROG_CO_P10
+        set_p(32, 210, 100, 350, 210)  # CMD_PROG_POKOJOWY_DZIENNA (21.0°C)
+        set_p(33, 190, 100, 350, 190)  # CMD_PROG_POKOJOWY_NOCNA (19.0°C)
         set_p(34, 10, 1, 60, 10)  # CMD_POD_CZASPRACY_GRZ
         set_p(35, 20, 1, 60, 20)  # CMD_POD_POST_GRZ
         set_p(38, 45, 42, 60, 45)  # CMD_CO_MIN
@@ -257,6 +259,16 @@ class VirtualFurnaceState:
         data[39] = now.tm_hour
         data[40] = now.tm_min
         data[41] = now.tm_sec
+
+        # Room day temp (bytes 47..48 in data, 55..56 in frame)
+        room_day = self.params.get(32, [210])[0]
+        data[47] = room_day & 0xFF
+        data[48] = (room_day >> 8) & 0xFF
+
+        # Room night temp (bytes 49..50 in data, 57..58 in frame)
+        room_night = self.params.get(33, [190])[0]
+        data[49] = room_night & 0xFF
+        data[50] = (room_night >> 8) & 0xFF
 
         # Feeder runtime (bytes 56..59 in data, 64..67 in frame): 32-bit LE seconds
         rt = self.feeder_runtime_sec

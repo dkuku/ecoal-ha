@@ -124,6 +124,20 @@
       const ok = await client.setTargetDhwTemp(next);
       if (ok) showToast(`Zadana temperatura CWU: ${next}°C`, 'success');
       else showToast('Błąd zapisu temperatury CWU', 'error');
+    } else if (type === 'room_day') {
+      const current = status.room_day_temp != null ? status.room_day_temp : 20.0;
+      const next = Math.round(Math.max(10.0, Math.min(35.0, current + delta)) * 10) / 10;
+      status.room_day_temp = next;
+      const ok = await client.setRoomDayTemp(next);
+      if (ok) showToast(`Zadana temp. pokojowa dzienna: ${next.toFixed(1)}°C`, 'success');
+      else showToast('Błąd zapisu temperatury pokojowej', 'error');
+    } else if (type === 'room_night') {
+      const current = status.room_night_temp != null ? status.room_night_temp : 18.0;
+      const next = Math.round(Math.max(10.0, Math.min(35.0, current + delta)) * 10) / 10;
+      status.room_night_temp = next;
+      const ok = await client.setRoomNightTemp(next);
+      if (ok) showToast(`Zadana temp. pokojowa nocna: ${next.toFixed(1)}°C`, 'success');
+      else showToast('Błąd zapisu temperatury pokojowej', 'error');
     }
   }
 

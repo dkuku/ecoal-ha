@@ -164,6 +164,35 @@ async def test_all_ecoal_entities(hass: HomeAssistant, furnace_server: EcoalMock
     state_hopper_cap = hass.states.get("number.ecoal_hopper_capacity")
     assert float(state_hopper_cap.state) == 200.0
 
+    # Room day/night temperature number entities
+    state_room_day = hass.states.get("number.ecoal_target_room_day_temperature") or hass.states.get("number.ecoal_room_day_temp")
+    assert state_room_day is not None
+    assert float(state_room_day.state) == 21.0
+
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {ATTR_ENTITY_ID: state_room_day.entity_id, "value": 22.5},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    state_room_day = hass.states.get(state_room_day.entity_id)
+    assert float(state_room_day.state) == 22.5
+
+    state_room_night = hass.states.get("number.ecoal_target_room_night_temperature") or hass.states.get("number.ecoal_room_night_temp")
+    assert state_room_night is not None
+    assert float(state_room_night.state) == 19.0
+
+    await hass.services.async_call(
+        "number",
+        "set_value",
+        {ATTR_ENTITY_ID: state_room_night.entity_id, "value": 18.0},
+        blocking=True,
+    )
+    await hass.async_block_till_done()
+    state_room_night = hass.states.get(state_room_night.entity_id)
+    assert float(state_room_night.state) == 18.0
+
     # 7. Test Button entities
     await hass.services.async_call(
         "button",
