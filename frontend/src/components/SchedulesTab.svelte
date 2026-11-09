@@ -135,6 +135,36 @@
     showToast('Skopiowano program z Niedzieli na wszystkie dni tygodnia', 'success');
   }
 
+  async function copyFromSchedule(sourceId) {
+    if (!client || isLoading) return;
+    const source = SCHEDULES.find((s) => s.id === sourceId);
+    const sourceName = source ? source.name : `#${sourceId}`;
+    const targetName = SCHEDULES.find((s) => s.id === selectedScheduleId)?.name || `#${selectedScheduleId}`;
+    if (
+      !confirm(
+        `Czy na pewno chcesz skopiować układ slotów z "${sourceName}" do "${targetName}"? Pamiętaj, aby po skopiowaniu kliknąć "Zapisz harmonogram".`
+      )
+    )
+      return;
+    isLoading = true;
+    try {
+      const result = await client.getWeeklyProgram(sourceId);
+      if (result && Array.isArray(result) && result.length === 7) {
+        days = result;
+        showToast(
+          `Skopiowano układ z "${sourceName}". Kliknij "Zapisz harmonogram", aby zapisać w sterowniku.`,
+          'success'
+        );
+      } else {
+        showToast(`Nie udało się odczytać harmonogramu #${sourceId}`, 'error');
+      }
+    } catch (err) {
+      showToast(`Błąd odczytu: ${err.message}`, 'error');
+    } finally {
+      isLoading = false;
+    }
+  }
+
   async function saveSchedule() {
     if (!client || isSaving) return;
     isSaving = true;
@@ -183,6 +213,27 @@
       <button class="btn-save-param" onclick={() => setAllSlots('1')}>{scheduleMeta.btnActive}</button>
       <button class="btn-save-param" onclick={() => setAllSlots('0')}>{scheduleMeta.btnInactive}</button>
       <button class="btn-save-param" onclick={copySundayToAll}>Kopiuj Niedzielę</button>
+      {#if selectedScheduleId === 24}
+        <button
+          class="btn-save-param"
+          style="border-color: #4ade80; color: #4ade80;"
+          onclick={() => copyFromSchedule(27)}
+          disabled={isLoading || isSaving}
+          title="Kopiuje strefy dzień/noc z Harmonogramu Pokojowego (#27) do Harmonogramu CO (#24)"
+        >
+          📋 Kopiuj z Pokojowego (#27)
+        </button>
+      {:else if selectedScheduleId === 27}
+        <button
+          class="btn-save-param"
+          style="border-color: var(--accent-flame); color: var(--accent-flame);"
+          onclick={() => copyFromSchedule(24)}
+          disabled={isLoading || isSaving}
+          title="Kopiuje strefy komfort/obniżona z Harmonogramu CO (#24) do Harmonogramu Pokojowego (#27)"
+        >
+          📋 Kopiuj z CO (#24)
+        </button>
+      {/if}
       <button class="btn-primary" onclick={saveSchedule} disabled={isSaving || isLoading}>
         {isSaving ? 'Zapisywanie...' : '💾 Zapisz harmonogram'}
       </button>
