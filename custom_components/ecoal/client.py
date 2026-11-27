@@ -340,8 +340,11 @@ class EcoalClient:
         result["target_dhw_temp"] = d[38]
         result["air_pump_power"] = d[39]
 
-        # Alarms (bytes 40-41)
-        result["alarms_raw"] = (d[41] << 8) | d[40]
+        # Alarms (bytes 40-41 low word + bytes 62-63 high word)
+        alarms_lo = (d[41] << 8) | d[40]
+        alarms_hi = (d[63] << 8) | d[62]
+        result["alarms2_raw"] = alarms_hi
+        result["alarms_raw"] = alarms_lo | (alarms_hi << 16)
         result["alarm_active"] = result["alarms_raw"] != 0
 
         # Mixer and auth (bytes 42-43)

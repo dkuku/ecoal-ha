@@ -318,16 +318,22 @@ class EcoalCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         last_feeder_min = float(self._maintenance_data.get("last_feeder_min", base_feeder_min) or base_feeder_min)
         accumulated_kg = float(self._maintenance_data.get("accumulated_coal_burned_kg", 0.0) or 0.0)
 
+        # Calibrated feeder throughput (kg/min): hopper_capacity_kg / feeder_max_runtime
+        max_rt_min = float(self.feeder_max_runtime or 500.0)
+        if max_rt_min <= 0:
+            max_rt_min = 500.0
+        kg_per_min = float(self.hopper_capacity_kg) / max_rt_min
+
         # Detect counter reset / rollover (e.g. controller restart or hopper refill reset feeder counter to 0)
         if current_feeder_min < last_feeder_min:
-            coal_before_reset = max(0.0, (last_feeder_min - base_feeder_min) * 0.3666)
+            coal_before_reset = max(0.0, (last_feeder_min - base_feeder_min) * kg_per_min)
             accumulated_kg += coal_before_reset
             base_feeder_min = 0.0
             self._maintenance_data["accumulated_coal_burned_kg"] = round(accumulated_kg, 2)
             self._maintenance_data["feeder_runtime_at_cleaning"] = 0.0
 
         self._maintenance_data["last_feeder_min"] = current_feeder_min
-        current_cycle_burned = max(0.0, (current_feeder_min - base_feeder_min) * 0.3666)
+        current_cycle_burned = max(0.0, (current_feeder_min - base_feeder_min) * kg_per_min)
         burned = round(accumulated_kg + current_cycle_burned, 1)
         self._maintenance_data["coal_burned_since_cleaning_kg"] = burned
 
