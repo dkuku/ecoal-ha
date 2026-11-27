@@ -1,9 +1,10 @@
 __pycache__/
-*.pyc
-.DS_Store
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
 .idea/
 .vscode/
-node_modules/
-.DS_Store
-.pio/
-.pytest_cache/
+.claude/
+AGENTS.md
+docs/furnace_memory.md
